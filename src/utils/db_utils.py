@@ -15,6 +15,10 @@ class DBConn:
     def __exit__(self, exception_type, exception_value, exception_traceback):
         self.conn.close()
 
+    def rollback(self):
+        cur = self.conn.cursor()
+        cur.execute('rollback')
+
     def prewarm(self):
         cur = self.conn.cursor()
         cur.execute("select table_name from information_schema.tables where table_schema='public'")
