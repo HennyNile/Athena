@@ -57,7 +57,7 @@ def main(args: argparse.Namespace):
             samples = []
             print(f"Generate plans of {name}")
             for option in tqdm(options):
-                hints = option.get_hints() if option is not None else []
+                hints = option.get_hints() if option is not None else ["SET enable_lero TO off"]
                 try:
                     try:
                         db.get_result(query, hints, timeout=timeout)
