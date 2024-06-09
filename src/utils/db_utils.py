@@ -15,6 +15,10 @@ class DBConn:
     def __exit__(self, exception_type, exception_value, exception_traceback):
         self.conn.close()
 
+    def reset(self):
+        cur = self.conn.cursor()
+        cur.execute('RESET ALL')
+
     def rollback(self):
         cur = self.conn.cursor()
         cur.execute('rollback')
