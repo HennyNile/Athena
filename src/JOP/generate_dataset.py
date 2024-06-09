@@ -12,6 +12,7 @@ from tqdm import tqdm
 sys.path.append('.')
 from src.utils.db_utils import DBConn
 from src.utils.workload_utils import read_workload
+from src.utils.plan_utils import UniquePlan
 
 JOP_plans_filepath = '/tmp/JOP_join_order_plans.txt'
 
@@ -54,6 +55,14 @@ def main(args: argparse.Namespace):
                     db.rollback()
                 samples.append(sample)
             query_path = os.path.join(dataset_path, f'query_{query_idx:04d}.json')
+            print(f"Get {len(samples)} samples.")
+            sample_set = []
+            for i in range(1, len(samples)):
+                plan = UniquePlan(samples[i]['Plan'])
+                if plan not in sample_set:
+                    sample_set.append(plan)
+                else:
+                    print(f"Duplicate plan found in {name} query {query_idx}.")
             with open(query_path, 'w') as f:
                 json.dump(samples, f)
 
