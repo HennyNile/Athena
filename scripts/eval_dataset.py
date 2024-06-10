@@ -12,8 +12,8 @@ def main(args: argparse.Namespace):
     _, datasets = read_dataset(dataset_path)
     defualt_times = [query[0].get('Execution Time', float('inf')) for query in datasets]
     times = [min([p.get('Execution Time', float('inf')) for p in query]) for query in datasets]
-    print(f'Total default min time: {sum(defualt_times)}')
-    print(f'Max default min time: {max(defualt_times)}')
+    print(f'Total default time: {sum(defualt_times)}')
+    print(f'Max default time: {max(defualt_times)}')
     print(f'Total min time: {sum(times)}')
     print(f'Max min time: {max(times)}')
 
