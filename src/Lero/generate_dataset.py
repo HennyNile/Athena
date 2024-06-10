@@ -12,7 +12,10 @@ from tqdm import tqdm
 sys.path.append('.')
 from src.utils.db_utils import DBConn
 from src.utils.workload_utils import read_workload
-from src.utils.plan_utils import UniquePlan
+from src.utils.plan_utils import UniquePlan, SCAN_TYPES, JOIN_TYPES
+
+SAME_CARD_TYPES = ["Hash", "Materialize", "Sort", "Incremental Sort", "Limit"]
+OP_TYPES = ["Aggregate", "Bitmap Index Scan"] +  SCAN_TYPES + JOIN_TYPES + SAME_CARD_TYPES
 
 class SwingOption:
     def __init__(self, num_tables: int, swing_factor: float):
@@ -25,6 +28,39 @@ class SwingOption:
         hints.append(f'SET lero_subquery_table_num TO {self.num_tables}')
         hints.append(f'SET lero_swing_factor TO {self.swing_factor}')
         return hints
+
+    def replace(self, plan):
+        input_card = None
+        input_tables = []
+        output_card = None
+
+        if "Plans" in plan:
+            children = plan['Plans']
+            child_input_tables = None
+            if len(children) == 1:
+                child_input_card, child_input_tables = self.replace(children[0])
+                input_card = child_input_card
+                input_tables += child_input_tables
+            else:
+                for child in children:
+                    _, child_input_tables = self.replace(child)
+                    input_tables += child_input_tables
+
+        node_type = plan['Node Type']
+        if node_type in JOIN_TYPES:
+            if len(input_tables) == self.num_tables:
+                plan['Plan Rows'] /= self.swing_factor
+            output_card = plan['Plan Rows']
+        elif node_type in SAME_CARD_TYPES:
+            if input_card is not None:
+                plan['Plan Rows'] = input_card
+                output_card = input_card
+        elif node_type in SCAN_TYPES:
+            input_tables.append(plan['Relation Name'])
+        elif node_type not in self.OP_TYPES:
+            raise Exception("Unknown node type " + node_type)
+
+        return output_card, input_tables
 
 def main(args: argparse.Namespace):
     names, queries = read_workload(args.workload)
