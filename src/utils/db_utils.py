@@ -23,6 +23,31 @@ class DBConn:
         cur = self.conn.cursor()
         cur.execute('rollback')
 
+    def get_db_info(self):
+        cur = self.conn.cursor()
+        cur.execute("select table_name from information_schema.tables where table_schema='public'")
+        table_map = {}
+        column_map = {}
+        normalizer = {}
+        table_names = [table_name[0] for table_name in cur.fetchall()]
+        for table_name in table_names:
+            table_map[table_name] = len(table_map)
+            cur.execute(f"select column_name, data_type from information_schema.columns where table_schema='public' and table_name = '{table_name}'")
+            results = cur.fetchall()
+            column_names = [column_name[0] for column_name in results]
+            data_types = [data_type[1] for data_type in results]
+            for column_name, data_type in zip(column_names, data_types):
+                column_map[(table_name, column_name)] = len(column_map)
+                if data_type == 'integer':
+                    m, M = self.get_column_normalization(table_name, column_name)
+                    normalizer[(table_name, column_name)] = (m, M)
+        return table_map, column_map, normalizer
+
+    def get_column_normalization(self, table, column):
+        cur = self.conn.cursor()
+        cur.execute(f"select min({column}), max({column}) from {table}")
+        return cur.fetchone()
+
     def prewarm(self):
         cur = self.conn.cursor()
         cur.execute("select table_name from information_schema.tables where table_schema='public'")
