@@ -21,7 +21,7 @@ def num_cmp(a: str, b: str) -> int:
 
 
 def load_latest_plans(db, workload, method):
-    plan_dirpath = f"results/{db.lower()}/{workload.lower()}/{method.lower()}/"
+    plan_dirpath = f"results/{db}/{workload}/{method.lower()}/"
     timestamp = sorted(os.listdir(plan_dirpath))[-1]
     plan_dirpath = plan_dirpath + timestamp + '/'
     plan_filenames = os.listdir(plan_dirpath)
@@ -52,8 +52,12 @@ if __name__ == '__main__':
     parser.add_argument('--method', type=str, default='pg')
     args = parser.parse_args()
     names, plans = load_latest_plans(args.database, args.workload, args.method)
+    runtime_list = []
+    runtime_sum = 0
+    for plan in plans:
+        runtime_sum += plan['Execution Time']
+        runtime_list.append(plan['Execution Time'])
     print(len(plans))
-    print(names)
-    print(plans[0])
+    print(runtime_sum)
 
 
