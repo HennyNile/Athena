@@ -32,12 +32,15 @@ def main(args: argparse.Namespace):
             timeout = 0
             samples = []
             print(f"Generate plans of {name}")
-            db.get_plan(query, ['SET enable_join_order_plans = on'])
+            db.get_plan(query, ['SET enable_join_order_plans = on', 'SET geqo_threshold = 20'])
             join_order_hints = list(set(open(JOP_plans_filepath, 'r').readlines()))
             for i in tqdm(range(len(join_order_hints) + 1)):
-                hints = ['SET enable_join_order_plans = off']
-                if not i == 0:
+                hints = []
+                if i == 0:
+                    hints = ['SET enable_join_order_plans = off', 'SET geqo_threshold = 12']
+                else:
                     query = f'/*+ Leading({join_order_hints[i-1]}) */ {query}'
+                    hints = ['SET enable_join_order_plans = off', 'SET geqo_threshold = 20']
                 try:
                     try:
                         db.get_result(query, hints, timeout=timeout)
