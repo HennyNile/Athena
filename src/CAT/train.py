@@ -32,7 +32,7 @@ class PlanDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.samples[idx]
-    
+
 class QuerySampler:
     def __init__(self, dataset: list[list[dict]]):
         num_queries = len(dataset)
@@ -57,6 +57,38 @@ class QuerySampler:
         self.current_qid_idx += 1
         return ret
 
+class ItemwiseSampler:
+    def __init__(self, dataset: list[list[dict]], batch_size: int, shuffle = True, drop_last = False):
+        self.batch_size = batch_size
+        self.all_indices = []
+        sample_idx = 0
+        for query in dataset:
+            for i in range(len(query)):
+                self.all_indices.append(sample_idx + i)
+            sample_idx += len(query)
+        if not drop_last:
+            self.num_batches = (len(self.all_indices) + batch_size - 1) // batch_size
+        else:
+            self.num_batches = len(self.all_indices) // batch_size
+        self.shuffled_indices = None
+        self.current_batch = None
+
+    def __len__(self):
+        return self.num_batches
+
+    def __iter__(self):
+        self.shuffled_indices = self.all_indices[:]
+        np.random.shuffle(self.shuffled_indices)
+        self.current_batch = 0
+        return self
+
+    def __next__(self):
+        if self.current_batch >= self.num_batches:
+            raise StopIteration
+        ret = self.shuffled_indices[self.current_batch * self.batch_size: (self.current_batch + 1) * self.batch_size]
+        self.current_batch += 1
+        return ret
+
 class PairwiseSampler:
     def __init__(self, dataset: list[list[dict]], batch_size: int, shuffle = True, drop_last = False):
         self.batch_size = batch_size
@@ -68,7 +100,7 @@ class PairwiseSampler:
                     if 'Execution Time' in query[i] or 'Execution Time' in query[j]:
                         self.all_indices.append((sample_idx + i, sample_idx + j))
             sample_idx += len(query)
-        if drop_last:
+        if not drop_last:
             self.num_batches = (len(self.all_indices) + batch_size - 1) // batch_size
         else:
             self.num_batches = len(self.all_indices) // batch_size
@@ -112,7 +144,7 @@ def train_cards(model, optimizer, dataloader: DataLoader, val_dataloader, num_ep
         writer.add_scalar('train/cards_loss', loss, epoch)
         print(f'Epoch {epoch}, loss: {loss}')
 
-        model.model.cpu()
+        # model.model.cpu()
         model.model.eval()
         losses = []
         qerrors = []
@@ -168,13 +200,15 @@ def main(args: argparse.Namespace):
     model.init_model()
 
     train_dataset = PlanDataset(train_queries, model)
+    itemwise_sampler = ItemwiseSampler(train_queries, args.batch_size)
     pairwise_sampler = PairwiseSampler(train_queries, args.batch_size // 2)
     val_dataset = PlanDataset(val_queries, model)
     val_sampler = QuerySampler(val_queries)
 
-    dataloader = DataLoader(train_dataset, batch_size=args.batch_size, collate_fn=model.get_collate_fn(torch.device('cuda')), shuffle=True)
-    val_dataloader = DataLoader(val_dataset, batch_sampler=val_sampler, collate_fn=model.get_collate_fn(torch.device('cpu')))
-    optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-6)
+    # dataloader = DataLoader(train_dataset, batch_size=args.batch_size, collate_fn=model.get_collate_fn(torch.device('cuda')), shuffle=True)
+    dataloader = DataLoader(train_dataset, batch_sampler=itemwise_sampler, collate_fn=model.get_collate_fn(torch.device('cuda')))
+    val_dataloader = DataLoader(val_dataset, batch_sampler=val_sampler, collate_fn=model.get_collate_fn(torch.device('cuda')))
+    optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-4)
     train_cards(model, optimizer, dataloader, val_dataloader, 500, 'models')
 
 if __name__ == '__main__':
