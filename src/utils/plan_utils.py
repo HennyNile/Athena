@@ -47,7 +47,7 @@ class UniquePlan:
             node_type = node['Node Type']
             ret.append(node_type)
             if node_type in SCAN_TYPES:
-                ret.append(node['Relation Name'])
+                ret.append(node['Alias'])
                 num_tables += 1
             for child in node.get('Plans', []):
                 recurse(child)
