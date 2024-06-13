@@ -218,12 +218,15 @@ def train_cost(model, optimizer, dataloader, val_dataloader, num_epochs, checkpo
             pred = cost.view(-1, 2)
             label = cost_label.view(-1, 2)
             pred = pred[:,0] - pred[:,1]
-            label_log_diff = label[:,0].log() - label[:,1].log()
-            weight = torch.abs(label_log_diff)
-            weight = weight.clamp(max=math.log(8.))
-            weight = weight / torch.sum(weight)
-            label = F.sigmoid(label_log_diff * 2)
-            loss = F.binary_cross_entropy_with_logits(pred, label, weight, reduction='sum')
+            # label = (label[:,0] > label[:,1]).float()
+            label = F.sigmoid((label[:,0].log() - label[:,1].log()) * 2)
+            loss = F.binary_cross_entropy_with_logits(pred, label)
+            # label_log_diff = label[:,0].log() - label[:,1].log()
+            # weight = torch.abs(label_log_diff)
+            # weight = weight.clamp(max=math.log(8.))
+            # weight = weight / torch.sum(weight)
+            # label = F.sigmoid(label_log_diff * 2)
+            # loss = F.binary_cross_entropy_with_logits(pred, label, weight, reduction='sum')
             losses.append(loss.item())
             optimizer.zero_grad()
             loss.backward()
@@ -287,8 +290,11 @@ def main(args: argparse.Namespace):
     dataloader = DataLoader(train_dataset, batch_sampler=itemwise_sampler, collate_fn=model.get_collate_fn(torch.device('cuda')))
     val_dataloader = DataLoader(val_dataset, batch_sampler=val_sampler, collate_fn=model.get_collate_fn(torch.device('cuda')))
     optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-4)
-    train_cards(model, optimizer, dataloader, val_dataloader, args.cards_epoch, 'models')
-    model.save('cards.pth')
+    if args.from_cards is None:
+        train_cards(model, optimizer, dataloader, val_dataloader, args.cards_epoch, 'models')
+        model.save('cards.pth')
+    else:
+        model.load(args.from_cards)
 
     train_dataset = CostDataset(train_dataset, 'tmp_train')
     val_dataset = CostDataset(val_dataset, 'tmp_val')
@@ -305,6 +311,7 @@ if __name__ == '__main__':
     parser.add_argument('--cards_epoch', type=int, default=50)
     parser.add_argument('--cost_epoch', type=int, default=100)
     parser.add_argument('--batch_size', type=int, default=64)
+    parser.add_argument('--from_cards', type=str, default=None)
     args = parser.parse_args()
     seed = args.seed
     random.seed(seed)
