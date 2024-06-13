@@ -77,12 +77,20 @@ class CatModel(nn.Module):
         cost_info = self.cost_predictor(plan_with_card, pos, mask)
         cost = self.cost_estimator(self.batch_norm(cost_info[:, 0]))
         return cost, cards
-    
+
     def cards_output(self, x, pos, mask):
         plan = self.plan_encoder(x, pos, mask)
         card_info = self.card_predictor(plan)
         cards = self.card_estimator(self.activation(card_info)).flatten(1)
         return cards
+
+    def cost_output(self, x, pos, mask):
+        plan = self.plan_encoder(x, pos, mask)
+        card_info = self.card_predictor(plan)
+        plan_with_card = torch.cat([plan.detach(), card_info.detach()], dim=2)
+        cost_info = self.cost_predictor(plan_with_card, pos, mask)
+        cost = self.cost_estimator(self.batch_norm(cost_info[:, 0]))
+        return cost
 
     def train_output(self, x, pos, mask, pretrain: bool = False):
         plan = self.plan_encoder(x, pos, mask)

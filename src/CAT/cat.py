@@ -15,28 +15,6 @@ from libcat.node_encoder import KeyType, EmbeddingManager, featurize_nodes, batc
 
 from cat_model import CatModel, CatArgs
 
-table_name_regex = re.compile(r'^CREATE TABLE ([\w_]+) .*')
-column_name_regex = re.compile(r'^\s*([\w_]+) (integer|character).*')
-
-def get_column_map(path) -> tuple[dict[str, int], dict[str, int]]:
-    with open(path, 'r') as f:
-        lines = f.readlines()
-    table_map = {}
-    column_map = {}
-    for line in lines:
-        match_result = table_name_regex.match(line)
-        if match_result:
-            current_table_name = match_result.group(1)
-            table_idx = len(table_map)
-            table_map[current_table_name] = table_idx
-            continue
-        match_result = column_name_regex.match(line)
-        if match_result:
-            column_name = match_result.group(1)
-            column_idx = len(column_map)
-            column_map[(current_table_name, column_name)] = column_idx
-    return table_map, column_map
-
 def get_alias_map(sample):
     count_map = {}
     alias_map = {}
@@ -139,13 +117,6 @@ class Cat:
         )
         self.model = CatModel(model_arg)
 
-    def transform_dataset(self, dataset: list[list[dict]]) -> list[Sample]:
-        all_samples = []
-        for plans in dataset:
-            samples = self.transform(plans)
-            all_samples.extend(samples)
-        return all_samples
-
     def transform(self, plans: list[dict]) -> list[Sample]:
         samples: list[tuple[dict, dict[str, str], list[list[tuple[InputTokenType, any]]]]] = []
 
@@ -171,25 +142,19 @@ class Cat:
         pos = torch.tensor(pos, dtype=torch.float32, device=device)
         mask = torch.full((len(mask_range), len(mask_range)), -torch.inf, dtype=torch.float32, device=device)
         cards = torch.log(torch.tensor(cards, dtype=torch.float32, device=device) + 1.) / math.log(self.max_card + 1.)
-        costs = sample.plan.get('Execution Time', torch.inf)
+        cost = sample.plan.get('Execution Time', torch.inf)
         for idx, (begin, end) in enumerate(mask_range):
             mask[idx, begin:end] = 0.
-        return x, pos, mask, cards, costs
+        return x, pos, mask, cards, cost
 
-    def transform_samples(self, batch: list[Sample], device: torch.device) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        xs = []
-        positions = []
-        masks = []
-        cards_batch = []
-        costs = []
-
-        for plan in batch:
-            x, pos, mask, cards, cost = self.transform_sample(plan, device)
-            xs.append(x)
-            positions.append(pos)
-            masks.append(mask)
-            cards_batch.append(cards)
-            costs.append(cost)
+    def batch_transformed_samples(
+            self,
+            xs: list[torch.Tensor],
+            positions: list[torch.Tensor],
+            masks: list[torch.Tensor],
+            cards_batch: list[torch.Tensor],
+            costs: list[float],
+            device: torch.device) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
 
         batch_size = len(xs)
         max_seq_len = max(x.shape[0] for x in xs)
@@ -208,9 +173,29 @@ class Cat:
             ret_mask[idx, :seq_len, seq_len:] = -torch.inf
             ret_cards[idx, :seq_len] = cards
         return ret_x, ret_pos, ret_mask, ret_cards, ret_cost
-    
+
+    def transform_samples(self, batch: list[Sample], device: torch.device) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        xs = []
+        positions = []
+        masks = []
+        cards_batch = []
+        costs = []
+
+        for plan in batch:
+            x, pos, mask, cards, cost = self.transform_sample(plan, device)
+            xs.append(x)
+            positions.append(pos)
+            masks.append(mask)
+            cards_batch.append(cards)
+            costs.append(cost)
+
+        return self.batch_transformed_samples(xs, positions, masks, cards_batch, costs, device)
+
     def get_collate_fn(self, device: torch.device):
         return lambda batch: self.transform_samples(batch, device)
+
+    def get_collate_fn2(self, device: torch.device):
+        return lambda batch: self.batch_transformed_samples(*zip(*batch), device)
 
     def denormalize_card(self, card: float) -> float:
         return torch.exp(card * math.log(self.max_card + 1.))
@@ -221,97 +206,6 @@ class Cat:
         max_v = torch.max(input, target)
         min_v = torch.min(input, target)
         return max_v / min_v
-
-    def itemwise_loss(self, samples: list[Sample], train_cost = False) -> list[torch.Tensor]:
-        x, pos, mask, cards_batch, costs = self.transform_samples(samples)
-        costs_output, cards_output = self.model.train_output(x, pos, mask)
-        cards_mask = mask[:, 0].isfinite() & cards_batch.isfinite()
-        cards_output_vec = cards_output[cards_mask]
-        cards_label_vec = cards_batch[cards_mask]
-        weight = cards_label_vec / torch.sum(cards_label_vec)
-        weight = weight.clamp(min=1e-3)
-        cards_loss = torch.sum(weight * (cards_output_vec - cards_label_vec) ** 2)
-        if self.args.output_mode == 'number':
-            costs_loss = F.mse_loss(costs_output.view(-1), costs / 10000. - 12)
-        elif self.args.output_mode == 'ce':
-            costs_loss = F.cross_entropy(costs_output.view(-1, 2), costs.view(-1))
-        elif self.args.output_mode == 'bce':
-            costs_loss = F.binary_cross_entropy_with_logits(costs_output, costs)
-        else:
-            raise ValueError(f'Invalid output_mode: {self.args.output_mode}')
-        if train_cost:
-            return [costs_loss]
-        else:
-            return [cards_loss]
-
-    def pairwise_loss(self, samples: list[Sample], train_cost = False) -> list[torch.Tensor]:
-        x, pos, mask, cards_batch, costs = self.transform_samples(samples)
-        costs_output, cards_output = self.model.train_output(x, pos, mask)
-        cards_mask = mask[:, 0].isfinite() & cards_batch.isfinite()
-        cards_output_vec = cards_output[cards_mask]
-        cards_label_vec = cards_batch[cards_mask]
-        weight = cards_label_vec / torch.sum(cards_label_vec)
-        weight = weight.clamp(min=1e-3)
-        cards_loss = torch.sum(weight * (cards_output_vec - cards_label_vec) ** 2)
-        # cards_loss = torch.mean(self.q_error_loss(torch.clamp(cards_output_vec, 0., 1.2), cards_label_vec))
-        # cards_loss = F.smooth_l1_loss(cards_output_vec, cards_label_vec)
-        if self.args.output_mode == 'number':
-            output_diffs = costs_output - costs_output.view(-1)
-            # costs = torch.log(costs)
-            # label_diffs = F.sigmoid((costs.unsqueeze(1) - costs) * 10)
-            label_diffs = ((costs.unsqueeze(1) - costs) > 0.).float()
-            mask = torch.tril(torch.ones_like(output_diffs, dtype=torch.bool), diagonal=-1)
-            mask = mask & label_diffs.isfinite()
-            output_diffs = output_diffs[mask]
-            label_diffs = label_diffs[mask]
-            cost_loss = F.binary_cross_entropy_with_logits(output_diffs, label_diffs)
-        else:
-            raise ValueError(f'Invalid output_mode: {self.args.output_mode}')
-        if train_cost:
-            return [cost_loss]
-        else:
-            return [cards_loss]
-
-    def listwise_loss(self, samples: list[Sample]) -> list[torch.Tensor]:
-        x, pos, mask, cards_batch, costs = self.transform_samples(samples)
-        costs_output, cards_output = self.model.train_output(x, pos, mask)
-        cards_mask = mask[:, 0].isfinite() & cards_batch.isfinite()
-        cards_output_vec = cards_output[cards_mask]
-        cards_label_vec = cards_batch[cards_mask]
-        cards_loss = F.mse_loss(cards_output_vec, cards_label_vec)
-        if self.args.output_mode == 'number':
-            costs_loss = lambda_loss(-costs_output.view(-1), costs)
-        else:
-            raise ValueError(f'Invalid output_mode: {self.args.output_mode}')
-        return [cards_loss + 10 * costs_loss]
-
-    def optimizers(self, train_cost = False) -> list[torch.optim.Optimizer]:
-        # common_parameters = [self.model.expr_encoder.parameters(), self.model.node_encoder.parameters(), self.model.plan_encoder.parameters()]
-        # card_parameters = common_parameters + [self.model.card_predictor.parameters(), self.model.card_estimator.parameters()]
-        # cost_parameters = [self.model.cost_predictor.parameters(), self.model.cost_estimator.parameters()]
-        # card_optimizer = torch.optim.Adam(itertools.chain(*card_parameters))
-        # cost_optimizer = torch.optim.Adam(itertools.chain(*cost_parameters))
-        # return [card_optimizer, cost_optimizer]
-        if self.args.freeze_pretrain:
-            self.model.expr_encoder.requires_grad_(False)
-            self.model.node_encoder.requires_grad_(False)
-            self.model.plan_encoder.requires_grad_(False)
-            self.model.plan_encoder.blocks[-1].requires_grad_(True)
-            net_modules = [self.model.plan_encoder.blocks[-1], self.model.card_predictor, self.model.card_estimator, self.model.cost_predictor, self.model.cost_estimator, self.model.batch_norm]
-            parameters = [m.parameters() for m in net_modules]
-            return [torch.optim.Adam(itertools.chain(*parameters), lr=1e-5)]
-        else:
-            if train_cost:
-                return [torch.optim.Adam(self.model.parameters(), lr=1e-5)]
-            else:
-                return [torch.optim.Adam(self.model.parameters(), lr=1e-6)]
-
-    def lr_scheduler(self, optimizers: list[torch.optim.Optimizer], train_cost = False) -> list[torch.optim.lr_scheduler.LRScheduler]:
-        if train_cost:
-            # return [torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.92) for optimizer in optimizers]
-            return [torch.optim.lr_scheduler.StepLR(optimizer, step_size=80, gamma=0.6) for optimizer in optimizers]
-        else:
-            return [None for optimizer in optimizers]
 
     def save(self, path: str) -> None:
         model_state = {
