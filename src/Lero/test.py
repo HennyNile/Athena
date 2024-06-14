@@ -15,7 +15,7 @@ from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter()
 
-from cat import Cat
+from lero import Lero
 
 sys.path.append('.')
 from src.utils.dataset_utils import read_dataset
@@ -23,7 +23,7 @@ from src.utils.db_utils import DBConn
 from src.utils.sampler_utils import ItemwiseSampler
 
 class PlanDataset(Dataset):
-    def __init__(self, dataset: list[list[dict]], model: Cat):
+    def __init__(self, dataset: list[list[dict]], model: Lero):
         plans = [plan for query in tqdm(dataset) for plan in query]
         self.model = model
         self.samples = model.transform(plans)
@@ -38,8 +38,8 @@ def test(model, dataloader):
         model.model.cuda()
         model.model.eval()
         preds = []
-        for x, pos, mask, _, _ in tqdm(dataloader):
-            cost = model.model.cost_output(x, pos, mask)
+        for trees, _ in tqdm(dataloader):
+            cost = model.model(trees)
             pred = cost.view(-1)
             preds.append(pred.detach().cpu().numpy())
         preds = np.concatenate(preds)
@@ -66,21 +66,21 @@ def main(args: argparse.Namespace):
 
     # read db info
     with DBConn(database) as db:
-        table_map, column_map, normalizer = db.get_db_info()
+        table_map, _, _ = db.get_db_info()
 
     # create model
-    model = Cat(table_map, column_map, normalizer)
+    model = Lero(table_map,)
     model.load(args.model)
 
     test_dataset = PlanDataset(dataset, model)
     itemwise_sampler = ItemwiseSampler(dataset, args.batch_size, shuffle=False)
-    dataloader = DataLoader(test_dataset, batch_sampler=itemwise_sampler, collate_fn=model.get_collate_fn(torch.device('cuda')))
+    dataloader = DataLoader(test_dataset, batch_sampler=itemwise_sampler, collate_fn=model._transform_samples)
     results = test(model, dataloader)
     results = group_by_dataset(results, dataset)
     results = best_preds(results)
     result_dir = os.path.join('results', args.dataset)
     os.makedirs(result_dir, exist_ok=True)
-    result_path = os.path.join(result_dir, 'CAT.json')
+    result_path = os.path.join(result_dir, 'Lero.json')
     with open(result_path, 'w') as f:
         json.dump(results, f)
 
@@ -88,6 +88,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='imdb/JOB-sample/JOP')
     parser.add_argument('--batch_size', type=int, default=64)
-    parser.add_argument('--model', type=str, default='cost.pth')
+    parser.add_argument('--model', type=str, default='lero.pth')
     args = parser.parse_args()
     main(args)
