@@ -15,7 +15,7 @@ from src.utils.workload_utils import read_workload
 from src.utils.plan_utils import UniquePlan, SCAN_TYPES, JOIN_TYPES
 
 SAME_CARD_TYPES = ["Hash", "Materialize", "Sort", "Incremental Sort", "Limit"]
-OP_TYPES = ["Aggregate", "Bitmap Index Scan"] +  SCAN_TYPES + JOIN_TYPES + SAME_CARD_TYPES
+OP_TYPES = ["Aggregate", "Bitmap Index Scan", "Memoize"] +  SCAN_TYPES + JOIN_TYPES + SAME_CARD_TYPES
 
 class SwingOption:
     def __init__(self, num_tables: int, swing_factor: float):
@@ -47,7 +47,7 @@ class SwingOption:
                     input_tables += child_input_tables
 
         node_type = plan['Node Type']
-        if node_type in JOIN_TYPES:
+        if node_type in JOIN_TYPES + ['Gather', 'Gather Merge']:
             if len(input_tables) == self.num_tables:
                 plan['Plan Rows'] /= self.swing_factor
             output_card = plan['Plan Rows']
@@ -57,7 +57,7 @@ class SwingOption:
                 output_card = input_card
         elif node_type in SCAN_TYPES:
             input_tables.append(plan['Relation Name'])
-        elif node_type not in self.OP_TYPES:
+        elif node_type not in OP_TYPES:
             raise Exception("Unknown node type " + node_type)
 
         return output_card, input_tables
@@ -109,6 +109,8 @@ def main(args: argparse.Namespace):
                 except psycopg2.errors.QueryCanceled:
                     sample = db.get_plan(query, hints)
                     db.rollback()
+                if option is not None:
+                    option.replace(sample['Plan'])
                 samples.append(sample)
             query_path = os.path.join(dataset_path, f'query_{query_idx:04d}.json')
             with open(query_path, 'w') as f:
