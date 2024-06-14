@@ -1,0 +1,18 @@
+SELECT MIN(t.title) AS american_vhs_movie
+FROM company_type AS ct,
+     info_type AS it,
+     movie_companies AS mc,
+     movie_info AS mi,
+     title AS t
+WHERE ct.kind = 'distributors'
+  AND TRUE
+  AND mc.note LIKE '%(theatrical)%'
+  AND TRUE
+  AND mc.note LIKE '%(VHS)%'
+  AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime')
+  AND t.production_year >= 1957
+  AND t.id = mi.movie_id
+  AND t.id = mc.movie_id
+  AND mc.movie_id = mi.movie_id
+  AND ct.id = mc.company_type_id
+  AND it.id = mi.info_type_id;
