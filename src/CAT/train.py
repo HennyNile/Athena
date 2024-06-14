@@ -68,8 +68,8 @@ class CostDataset(Dataset):
         obj = torch.load(os.path.join(self.tmp_dir, f'{idx}.pt'))
         return obj['x'], obj['pos'], obj['mask'], obj['cards'], obj['cost']
 
-def train_cards(model, optimizer, dataloader, val_dataloader, num_epochs, checkpoint_path, epoch_start = 0):
-    for epoch in range(epoch_start, num_epochs):
+def train_cards(model, optimizer, dataloader, val_dataloader, num_epochs):
+    for epoch in range(num_epochs):
         model.model.cuda()
         model.model.train()
         losses = []
@@ -118,8 +118,8 @@ def train_cards(model, optimizer, dataloader, val_dataloader, num_epochs, checkp
         # writer.add_scalar('val/p99', np.log10(p99), epoch)
         # print(f'p50: {p50}, p90: {p90}, p95: {p95}, p99: {p99}', flush=True)
 
-def train_cost(model, optimizer, dataloader, val_dataloader, num_epochs, checkpoint_path, epoch_start = 0):
-    for epoch in range(epoch_start, num_epochs):
+def train_cost(model, optimizer, dataloader, val_dataloader, num_epochs):
+    for epoch in range(num_epochs):
         model.model.cuda()
         model.model.train()
         losses = []
@@ -166,8 +166,8 @@ def train_cost(model, optimizer, dataloader, val_dataloader, num_epochs, checkpo
         print(f'Validation ability: {ability * 100}%', flush=True)
 
 def main(args: argparse.Namespace):
-    dataset_regex = re.compile(r'([a-zA-Z0-9]+)/([a-zA-Z0-9]+)/([a-zA-Z0-9]+)')
-    database, workload, _ = dataset_regex.match(args.dataset).groups()
+    dataset_regex = re.compile(r'([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)')
+    database, workload, method = dataset_regex.match(args.dataset).groups()
 
     # read dataset
     dataset_path = os.path.join('datasets', args.dataset)
@@ -202,7 +202,7 @@ def main(args: argparse.Namespace):
     val_dataloader = DataLoader(val_dataset, batch_sampler=val_sampler, collate_fn=model.get_collate_fn(torch.device('cuda')))
     optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-4)
     if args.from_cards is None:
-        train_cards(model, optimizer, dataloader, val_dataloader, args.cards_epoch, 'models')
+        train_cards(model, optimizer, dataloader, val_dataloader, args.cards_epoch)
         model.save('cards.pth')
     else:
         model.load(args.from_cards)
@@ -212,8 +212,9 @@ def main(args: argparse.Namespace):
     dataloader = DataLoader(train_dataset, batch_sampler=pairwise_sampler, collate_fn=model.get_collate_fn2(torch.device('cpu')))
     val_dataloader = DataLoader(val_dataset, batch_sampler=val_sampler, collate_fn=model.get_collate_fn2(torch.device('cpu')))
     optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-4)
-    train_cost(model, optimizer, dataloader, val_dataloader, args.cost_epoch, 'models')
-    model.save('cost.pth')
+    train_cost(model, optimizer, dataloader, val_dataloader, args.cost_epoch)
+    os.makedirs('models', exist_ok=True)
+    model.save(f'models/cat_on_{database}_{workload}_{method}.pth')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

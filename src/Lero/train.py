@@ -36,8 +36,8 @@ class PlanDataset(Dataset):
     def __getitem__(self, idx):
         return self.samples[idx]
 
-def train(model, optimizer, dataloader, val_dataloader, num_epochs, checkpoint_path, epoch_start = 0):
-    for epoch in range(epoch_start, num_epochs):
+def train(model, optimizer, dataloader, val_dataloader, num_epochs):
+    for epoch in range(num_epochs):
         model.model.cuda()
         model.model.train()
         losses = []
@@ -75,8 +75,8 @@ def train(model, optimizer, dataloader, val_dataloader, num_epochs, checkpoint_p
         print(f'Validation ability: {ability * 100}%', flush=True)
 
 def main(args: argparse.Namespace):
-    dataset_regex = re.compile(r'([a-zA-Z0-9]+)/([a-zA-Z0-9]+)/([a-zA-Z0-9]+)')
-    database, workload, _ = dataset_regex.match(args.dataset).groups()
+    dataset_regex = re.compile(r'([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)')
+    database, workload, method = dataset_regex.match(args.dataset).groups()
 
     # read dataset
     dataset_path = os.path.join('datasets', args.dataset)
@@ -107,8 +107,9 @@ def main(args: argparse.Namespace):
     dataloader = DataLoader(train_dataset, batch_sampler=pairwise_sampler, collate_fn=model._transform_samples)
     val_dataloader = DataLoader(val_dataset, batch_sampler=val_sampler, collate_fn=model._transform_samples)
     optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-4)
-    train(model, optimizer, dataloader, val_dataloader, args.epoch, 'models')
-    model.save('lero.pth')
+    train(model, optimizer, dataloader, val_dataloader, args.epoch)
+    os.makedirs('models', exist_ok=True)
+    model.save(f'models/lero_on_{database}_{workload}_{method}.pth')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
