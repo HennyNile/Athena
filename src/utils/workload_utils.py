@@ -4,6 +4,7 @@ import re
 
 job_name_re = re.compile(r"(\d+)([a-z]).sql")
 number_re = re.compile(r"(\d+).sql")
+job_sample_name_re = re.compile(r"(\d+)_(\d+).sql")
 
 def job_name_cmp(a: str, b: str) -> int:
     a_id, a_letter = job_name_re.match(a).groups()
@@ -17,6 +18,13 @@ def num_cmp(a: str, b: str) -> int:
     b_id = number_re.match(b).group(1)
     return int(a_id) - int(b_id)
 
+def job_sample_name_cmp(a: str, b: str) -> int:
+    a_id, a_sample_id = job_sample_name_re.match(a).groups()
+    b_id, b_sample_id = job_sample_name_re.match(b).groups()
+    if a_id != b_id:
+        return int(a_id) - int(b_id)
+    return int(a_sample_id) - int(b_sample_id)
+
 def read_workload(workload: str) -> tuple[list[str], list[str]]:
     path = os.path.join('workloads', workload)
     files = os.listdir(path)
@@ -26,6 +34,8 @@ def read_workload(workload: str) -> tuple[list[str], list[str]]:
         key = cmp_to_key(job_name_cmp)
     elif workload == 'STATS' or workload == 'TPCH':
         key = cmp_to_key(num_cmp)
+    elif workload == 'JOB-sample':
+        key = cmp_to_key(job_sample_name_cmp)
     else:
         raise ValueError(f'Invalid workload: {workload}')
     files.sort(key=key)

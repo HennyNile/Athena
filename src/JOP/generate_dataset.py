@@ -41,22 +41,26 @@ def main(args: argparse.Namespace):
                 else:
                     query = f'/*+ Leading({join_order_hints[i-1]}) */ {query}'
                     hints = ['SET enable_join_order_plans = off', 'SET geqo_threshold = 20']
-                try:
+                if not args.generate_candidate_plans:
                     try:
-                        db.get_result(query, hints, timeout=timeout)
+                        try:
+                            db.get_result(query, hints, timeout=timeout)
+                        except psycopg2.errors.QueryCanceled:
+                            db.rollback()
+                        sample = db.get_result(query, hints, timeout=timeout)
+                        if timeout == 0:
+                            timeout = 4 * sample['Execution Time']
+                            if timeout >= 240000:
+                                timeout = max(sample['Execution Time'], 240000)
+                            elif timeout <= 5000:
+                                timeout = 5000
                     except psycopg2.errors.QueryCanceled:
+                        sample = db.get_plan(query, hints)
                         db.rollback()
-                    sample = db.get_result(query, hints, timeout=timeout)
-                    if timeout == 0:
-                        timeout = 4 * sample['Execution Time']
-                        if timeout >= 240000:
-                            timeout = max(sample['Execution Time'], 240000)
-                        elif timeout <= 5000:
-                            timeout = 5000
-                except psycopg2.errors.QueryCanceled:
+                    samples.append(sample)
+                else:
                     sample = db.get_plan(query, hints)
-                    db.rollback()
-                samples.append(sample)
+                    samples.append(sample)
             query_path = os.path.join(dataset_path, f'query_{query_idx:04d}.json')
             print(f"Get {len(samples)} samples.")
             sample_set = []
@@ -75,5 +79,6 @@ if __name__ == '__main__':
     parser.add_argument('--database', type=str, default='imdb')
     parser.add_argument('--workload', type=str, default='JOB')
     parser.add_argument('--query_begin', type=int, default=0)
+    parser.add_argument('--generate_candidate_plans', type=bool, default=False)
     args = parser.parse_args()
     main(args)
