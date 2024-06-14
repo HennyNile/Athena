@@ -108,6 +108,7 @@ def main(args: argparse.Namespace):
     val_dataloader = DataLoader(val_dataset, batch_sampler=val_sampler, collate_fn=model._transform_samples)
     optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-4)
     train(model, optimizer, dataloader, val_dataloader, args.epoch, 'models')
+    model.save('lero.pth')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
