@@ -220,7 +220,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='imdb/JOB/Bao')
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--cards_epoch', type=int, default=50)
-    parser.add_argument('--cost_epoch', type=int, default=100)
+    parser.add_argument('--cost_epoch', type=int, default=30)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--from_cards', type=str, default=None)
     args = parser.parse_args()

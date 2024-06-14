@@ -70,10 +70,6 @@ class Cat:
         for sample in plans:
             alias_map, rel_names, _ = get_alias_map(sample)
             self._fit_sample(sample, alias_map, rel_names)
-        if '+' not in self.word_table:
-            self.word_table['+'] = len(self.word_table)
-        if 'verified' not in self.word_table:
-            self.word_table['verified'] = len(self.word_table)
         num_input_types = len(InputTokenType)
         num_syntax_types = len(SyntaxType)
         vocab_size = len(self.word_table)
