@@ -93,3 +93,70 @@ class PairwiseSampler:
         ret = self.shuffled_indices[self.current_batch * self.batch_size: (self.current_batch + 1) * self.batch_size]
         self.current_batch += 1
         return [idx for pair in ret for idx in pair]
+
+class GroupState:
+    def __init__(self, source, num_plans, shuffle):
+        self.source = source
+        self.shuffle = shuffle
+        self.shuffled = self.source[:]
+        if self.shuffle:
+            random.shuffle(self.shuffled)
+        self.offset = 0
+        self.num_plans = num_plans
+
+    def get_plans(self):
+        ret = []
+        while len(ret) < self.num_plans:
+            n_plans = min(self.num_plans - len(ret), len(self.shuffled) - self.offset)
+            if n_plans == 0:
+                self.shuffled = self.source[:]
+                if self.shuffle:
+                    random.shuffle(self.shuffled)
+                self.offset = 0
+                n_plans = min(self.num_plans - len(ret), len(self.shuffled))
+            ret.extend(self.shuffled[self.offset:self.offset + n_plans])
+            self.offset += n_plans
+        if len(ret) != self.num_plans:
+            raise RuntimeError('Wrong implementation')
+        return ret
+
+class BalancedPairwiseSampler:
+    def __init__(self, dataset: list[list[dict]], batch_size, shuffle = True, drop_last = False):
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.states = []
+        sample_idx = 0
+        for query in dataset:
+            indices = []
+            for i in range(len(query) - 1):
+                for j in range(i + 1, len(query)):
+                    if 'Execution Time' in query[i] or 'Execution Time' in query[j]:
+                        indices.append((sample_idx + i, sample_idx + j))
+            self.states.append(GroupState(indices, len(query), shuffle))
+            sample_idx += len(query)
+        self.total_len = sample_idx
+        if not drop_last:
+            self.num_batches = (self.total_len + batch_size - 1) // batch_size
+        else:
+            self.num_batches = self.total_len // batch_size
+        self.shuffled_indices = None
+        self.current_batch = None
+
+    def __len__(self):
+        return self.num_batches
+
+    def __iter__(self):
+        self.shuffled_indices = []
+        for state in self.states:
+            self.shuffled_indices.extend(state.get_plans())
+        if self.shuffle:
+            random.shuffle(self.shuffled_indices)
+        self.current_batch = 0
+        return self
+
+    def __next__(self):
+        if self.current_batch >= self.num_batches:
+            raise StopIteration
+        ret = self.shuffled_indices[self.current_batch * self.batch_size: (self.current_batch + 1) * self.batch_size]
+        self.current_batch += 1
+        return [idx for pair in ret for idx in pair]
