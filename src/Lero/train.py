@@ -109,7 +109,7 @@ def main(args: argparse.Namespace):
     optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-4)
     train(model, optimizer, dataloader, val_dataloader, args.epoch)
     os.makedirs('models', exist_ok=True)
-    model.save(f'models/lero_on_{database}_{workload}_{method}_{args.valset.split('.')[0]}.pth')
+    model.save(f'models/lero_on_{database}_{workload}_{method}_{args.valset.split(".")[0]}.pth')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
