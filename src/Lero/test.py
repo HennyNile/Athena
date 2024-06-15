@@ -80,7 +80,7 @@ def main(args: argparse.Namespace):
     results = best_preds(results)
     result_dir = os.path.join('results', args.dataset)
     os.makedirs(result_dir, exist_ok=True)
-    result_path = os.path.join(result_dir, 'Lero.json')
+    result_path = os.path.join(result_dir, f'{args.model.split('.')[0]}.json')
     with open(result_path, 'w') as f:
         json.dump(results, f)
 

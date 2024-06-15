@@ -1,4 +1,5 @@
 import random
+import numpy as np
 
 class QuerySampler:
     def __init__(self, dataset: list[list[dict]]):
@@ -47,7 +48,7 @@ class ItemwiseSampler:
     def __iter__(self):
         self.shuffled_indices = self.all_indices[:]
         if self.shuffle:
-            random.shuffle(self.shuffled_indices)
+            np.random.shuffle(self.shuffled_indices)
         self.current_batch = 0
         return self
 
@@ -83,7 +84,7 @@ class PairwiseSampler:
     def __iter__(self):
         self.shuffled_indices = self.all_indices[:]
         if self.shuffle:
-            random.shuffle(self.shuffled_indices)
+            np.random.shuffle(self.shuffled_indices)
         self.current_batch = 0
         return self
 
@@ -100,7 +101,7 @@ class GroupState:
         self.shuffle = shuffle
         self.shuffled = self.source[:]
         if self.shuffle:
-            random.shuffle(self.shuffled)
+            np.random.shuffle(self.shuffled)
         self.offset = 0
         self.num_plans = num_plans
 
@@ -111,7 +112,7 @@ class GroupState:
             if n_plans == 0:
                 self.shuffled = self.source[:]
                 if self.shuffle:
-                    random.shuffle(self.shuffled)
+                    np.random.shuffle(self.shuffled)
                 self.offset = 0
                 n_plans = min(self.num_plans - len(ret), len(self.shuffled))
             ret.extend(self.shuffled[self.offset:self.offset + n_plans])
@@ -150,7 +151,7 @@ class BalancedPairwiseSampler:
         for state in self.states:
             self.shuffled_indices.extend(state.get_plans())
         if self.shuffle:
-            random.shuffle(self.shuffled_indices)
+            np.random.shuffle(self.shuffled_indices)
         self.current_batch = 0
         return self
 

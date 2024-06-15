@@ -173,7 +173,7 @@ def main(args: argparse.Namespace):
     dataset_path = os.path.join('datasets', args.dataset)
     names, dataset = read_dataset(dataset_path)
 
-    val_names_path = os.path.join('datasets', database, workload, 'val.json')
+    val_names_path = os.path.join('datasets', database, workload, args.valset)
     with open(val_names_path, 'r') as f:
         val_names = json.load(f)
 
@@ -214,7 +214,7 @@ def main(args: argparse.Namespace):
     optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-4)
     train_cost(model, optimizer, dataloader, val_dataloader, args.cost_epoch)
     os.makedirs('models', exist_ok=True)
-    model.save(f'models/cat_on_{database}_{workload}_{method}.pth')
+    model.save(f'models/cat_on_{database}_{workload}_{method}_{args.valset.split('.')[0]}.pth')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -224,6 +224,7 @@ if __name__ == '__main__':
     parser.add_argument('--cost_epoch', type=int, default=30)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--from_cards', type=str, default=None)
+    parser.add_argument('--valset', type=str, default='val.json')
     args = parser.parse_args()
     seed = args.seed
     random.seed(seed)
