@@ -1,3 +1,5 @@
+import json
+
 SCAN_TYPES = ['Seq Scan', 'Index Scan', 'Index Only Scan', 'Bitmap Heap Scan']
 JOIN_TYPES = ["Nested Loop", "Hash Join", "Merge Join"]
 
@@ -55,3 +57,54 @@ class UniquePlan:
         
         recurse(plan)
         return ret, num_tables
+    
+def plan_struct_to_hint(tmp_sub_plan_struc, root=True):
+    join_hints = [] # list of [join operator, tables]
+    if len(tmp_sub_plan_struc) == 3:
+        join_op = tmp_sub_plan_struc[0]
+        left_tables, left_join_hints, left_leading_hint_text = plan_struct_to_hint(tmp_sub_plan_struc[1], root=False)
+        right_tables, right_join_hints, right_leading_hint_text = plan_struct_to_hint(tmp_sub_plan_struc[2], root=False)
+        join_tables = left_tables + right_tables
+        curr_join_hint = join_op + "(" + " ".join(left_tables + right_tables) + ")"
+        join_hints = [curr_join_hint] + left_join_hints + right_join_hints
+        leading_hint_text = '({} {})'.format(left_leading_hint_text, right_leading_hint_text)
+
+        if not root:
+            return join_tables, join_hints, leading_hint_text
+        else:
+            join_hints_text = '/*+ ' + ' '.join(join_hints) + ' ' + 'Leading({})'.format(leading_hint_text) + ' */'
+            return join_hints_text
+    else:
+        return tmp_sub_plan_struc, join_hints, tmp_sub_plan_struc[0]
+
+def plan_struct_to_leading_hint(tmp_sub_plan_struc, root=True):
+    join_hints = [] # list of [join operator, tables]
+    if len(tmp_sub_plan_struc) == 3:
+        join_op = tmp_sub_plan_struc[0]
+        left_tables, left_join_hints, left_leading_hint_text = plan_struct_to_hint(tmp_sub_plan_struc[1], root=False)
+        right_tables, right_join_hints, right_leading_hint_text = plan_struct_to_hint(tmp_sub_plan_struc[2], root=False)
+        join_tables = left_tables + right_tables
+        curr_join_hint = join_op + "(" + " ".join(left_tables + right_tables) + ")"
+        join_hints = [curr_join_hint] + left_join_hints + right_join_hints
+        leading_hint_text = '({} {})'.format(left_leading_hint_text, right_leading_hint_text)
+
+        if not root:
+            return join_tables, join_hints, leading_hint_text
+        else:
+            return leading_hint_text
+    else:
+        return tmp_sub_plan_struc, join_hints, tmp_sub_plan_struc[0]
+    
+def json_plan_to_plan_struct(tmp_json_plan):
+    if tmp_json_plan['Node Type'] not in ['Hash Join', 'Nested Loop', 'Merge Join', 'Seq Scan', 'Index Scan', 'Index Only Scan', 'Bitmap Heap Scan']:
+        # print(tmp_json_plan['Node Type'])
+        return json_plan_to_plan_struct(tmp_json_plan['Plans'][0])
+    elif tmp_json_plan['Node Type'] in ['Hash Join', 'Nested Loop', 'Merge Join']:
+        return [tmp_json_plan['Node Type'], json_plan_to_plan_struct(tmp_json_plan['Plans'][0]), json_plan_to_plan_struct(tmp_json_plan['Plans'][1])]
+    else:
+        return [tmp_json_plan['Alias']]    
+
+def plan_to_leading_hint(json_plan: dict):
+    json_struct = json_plan_to_plan_struct(json_plan['Plan'])
+    leading_hint_text = plan_struct_to_leading_hint(json_struct)
+    return leading_hint_text
