@@ -3,9 +3,9 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from transformer.common import TransformerArgs
-from transformer.normal import Encoder
-from transformer.tree import TreeEncoder
+from src.utils.transformer.common import TransformerArgs
+from src.utils.transformer.normal import Encoder
+from src.utils.transformer.tree import TreeEncoder
 
 class CatArgs:
     def __init__(
@@ -51,55 +51,47 @@ class CatArgs:
         self.cost_n_layers = cost_n_layers
         self.bias = bias
 
+class EmbedEncoder(nn.Module):
+    def __init__(self, feature_dim: int, args: TransformerArgs):
+        super().__init__()
+        self.embed = nn.Linear(feature_dim, args.embedding_dim, bias=args.bias)
+        self.encoder = Encoder(args)
+    
+    def forward(self, x: torch.Tensor, seq_lens: list[int]):
+        x = self.embed(x)
+        x = self.encoder(x, seq_lens)
+        return x
+
 class CatModel(nn.Module):
     def __init__(self, args: CatArgs):
         super().__init__()
         cost_feature_dim = args.node_embedding_dim + args.card_info_dim
-        expr_args = TransformerArgs(args.feature_dim, args.expr_embedding_dim, args.expr_hidden_dim, args.expr_n_heads, args.expr_n_layers, args.bias)
-        node_args = TransformerArgs(args.node_feature_dim, args.node_embedding_dim, args.node_hidden_dim, args.node_n_heads, args.node_n_layers, args.bias, use_rope=False)
-        plan_args = TransformerArgs(args.node_embedding_dim, args.plan_embedding_dim, args.plan_hidden_dim, args.plan_n_heads, args.plan_n_layers, args.bias)
-        cost_args = TransformerArgs(cost_feature_dim, args.cost_embedding_dim, args.cost_hidden_dim, args.cost_n_heads, args.cost_n_layers, args.bias)
-        self.expr_encoder = Encoder(expr_args)
-        self.node_encoder = Encoder(node_args)
+        expr_args = TransformerArgs(args.expr_embedding_dim, args.expr_hidden_dim, args.expr_n_heads, args.expr_n_layers, args.bias)
+        node_args = TransformerArgs(args.node_embedding_dim, args.node_hidden_dim, args.node_n_heads, args.node_n_layers, args.bias, use_rope=False)
+        plan_args = TransformerArgs(args.plan_embedding_dim, args.plan_hidden_dim, args.plan_n_heads, args.plan_n_layers, args.bias)
+        cost_args = TransformerArgs(args.cost_embedding_dim, args.cost_hidden_dim, args.cost_n_heads, args.cost_n_layers, args.bias)
+        self.expr_encoder = EmbedEncoder(args.feature_dim, expr_args)
+        self.node_encoder = EmbedEncoder(args.node_feature_dim, node_args)
+        self.plan_embed = nn.Linear(args.node_embedding_dim, args.plan_embedding_dim, bias=args.bias)
         self.plan_encoder = TreeEncoder(plan_args)
         self.card_predictor = nn.Linear(args.plan_embedding_dim, args.card_info_dim, bias=args.bias)
         self.activation = nn.LeakyReLU()
+        self.cost_embed = nn.Linear(cost_feature_dim, args.cost_embedding_dim, bias=args.bias)
         self.cost_predictor = TreeEncoder(cost_args)
         self.batch_norm = nn.BatchNorm1d(args.cost_embedding_dim)
         self.card_estimator = nn.Linear(args.card_info_dim, 1, bias=args.bias)
         self.cost_estimator = nn.Linear(args.cost_embedding_dim, 1, bias=args.bias)
 
-    def forward(self, x, pos, mask):
-        plan = self.plan_encoder(x, pos, mask)
-        card_info = self.card_predictor(plan)
-        cards = self.card_estimator(self.activation(card_info)).flatten(1)
-        plan_with_card = torch.cat([plan, card_info], dim=2)
-        cost_info = self.cost_predictor(plan_with_card, pos, mask)
-        cost = self.cost_estimator(self.batch_norm(cost_info[:, 0]))
-        return cost, cards
-
     def cards_output(self, x, pos, mask):
-        plan = self.plan_encoder(x, pos, mask)
+        plan = self.plan_encoder(self.plan_embed(x), pos, mask)
         card_info = self.card_predictor(plan)
         cards = self.card_estimator(self.activation(card_info)).flatten(1)
         return cards
 
     def cost_output(self, x, pos, mask):
-        plan = self.plan_encoder(x, pos, mask)
+        plan = self.plan_encoder(self.plan_embed(x), pos, mask)
         card_info = self.card_predictor(plan)
         plan_with_card = torch.cat([plan.detach(), card_info.detach()], dim=2)
-        cost_info = self.cost_predictor(plan_with_card, pos, mask)
+        cost_info = self.cost_predictor(self.cost_embed(plan_with_card), pos, mask)
         cost = self.cost_estimator(self.batch_norm(cost_info[:, 0]))
         return cost
-
-    def train_output(self, x, pos, mask, pretrain: bool = False):
-        plan = self.plan_encoder(x, pos, mask)
-        card_info = self.card_predictor(plan)
-        cards = self.card_estimator(self.activation(card_info)).flatten(1)
-        plan_with_card = torch.cat([plan.detach(), card_info.detach()], dim=2)
-        cost_info = self.cost_predictor(plan_with_card, pos, mask)
-        if not pretrain:
-            cost = self.cost_estimator(self.batch_norm(cost_info[:, 0]))
-        else:
-            cost = self.cost_estimator(cost_info).flatten(1)
-        return cost, cards

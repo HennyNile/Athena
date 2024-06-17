@@ -83,11 +83,9 @@ class TreeTransformerBlock(nn.Module):
 class TreeEncoder(nn.Module):
     def __init__(self, args: TransformerArgs) -> None:
         super().__init__()
-        self.embed = nn.Linear(args.feature_dim, args.embedding_dim, bias=args.bias)
         self.blocks = nn.ModuleList([TreeTransformerBlock(args.get_attn_args(), args.get_ffn_args()) for _ in range(args.n_layers)])
 
     def forward(self, x: torch.Tensor, pos: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        x = self.embed(x)
         for block in self.blocks:
             x = block(x, pos, mask)
         return x

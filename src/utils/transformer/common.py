@@ -18,9 +18,8 @@ class FeedForwardArgs:
         self.bias = bias
 
 class TransformerArgs:
-    def __init__(self, feature_dim: int, embedding_dim: int, hidden_dim: int, n_heads: int, n_layers: int, bias: bool = False, use_rope: bool = True) -> None:
+    def __init__(self, embedding_dim: int, hidden_dim: int, n_heads: int, n_layers: int, bias: bool = False, use_rope: bool = True) -> None:
         super().__init__()
-        self.feature_dim = feature_dim
         self.embedding_dim = embedding_dim
         self.hidden_dim = hidden_dim
         self.n_heads = n_heads

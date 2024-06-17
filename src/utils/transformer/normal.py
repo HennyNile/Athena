@@ -93,14 +93,9 @@ class TransformerBlock(nn.Module):
 class Encoder(nn.Module):
     def __init__(self, args: TransformerArgs, max_seq: int = 128) -> None:
         super().__init__()
-        self.output_vec = nn.Parameter(torch.randn((args.embedding_dim,), dtype=torch.float))
-        self.embed = nn.Linear(args.feature_dim, args.embedding_dim, args.bias)
         self.blocks = nn.ModuleList([TransformerBlock(args.get_attn_args(), args.get_ffn_args(), max_seq) for _ in range(args.n_layers)])
 
     def forward(self, x: torch.Tensor, seq_lens: list[int]):
-        x = self.embed(x)
-        # x = torch.concat((self.output_vec.repeat(x.shape[0], 1, 1), x), dim=1)
-        # seq_lens = [l + 1 for l in seq_lens]
         batch_size, seq_len, _ = x.shape
         mask = torch.zeros((batch_size, seq_len, 1), dtype=torch.float32, device=x.device)
         for idx, l in enumerate(seq_lens):
