@@ -1,39 +1,11 @@
 from enum import Enum
+import sys
 
 import torch
 
-import plan_expr_parser
-
-class TokenType(Enum):
-    LEFT_PARAN    = 0
-    RIGHT_PARAN   = 1
-    LEFT_BRACKET  = 2
-    RIGHT_BRACKET = 3
-    LEFT_CURLY    = 4
-    RIGHT_CURLY   = 5
-    ARRAY_BEGIN   = 6
-    ARRAY_END     = 7
-    EQUAL         = 8
-    LESS_THAN     = 9
-    GREATER_THAN  = 10
-    LESS_EQUAL    = 11
-    GREATER_EQUAL = 12
-    NOT_EQUAL     = 13
-    LIKE          = 14
-    NOT_LIKE      = 15
-    DOT           = 16
-    COMMA         = 17
-    HYPHEN        = 18
-    UNDER_SCORE   = 19
-    COLON         = 20
-    ADD           = 21
-    SINGLE_QUOTE  = 22
-    DOUBLE_QUOTE  = 23
-    WILDCARD      = 24
-    ATTRIBUTE     = 25
-    IDENTIFIER    = 26
-    NUMBER        = 27
-    WORD          = 28
+sys.path.append('.')
+from src.utils import tokenizer as plan_expr_parser
+from src.utils.tokenizer import TokenType
 
 class InputTokenType(Enum):
     SYNTAX    = 0
@@ -73,10 +45,9 @@ class SyntaxType(Enum):
     KEYWORD_NULL  = 26
 
 def word_splitter(word):
-    word_types, words = plan_expr_parser.string_splitter(word)
-    word_types = [TokenType(w) for w in word_types]
+    words = plan_expr_parser.string_splitter(word)
     ret = []
-    for wt, word in zip(word_types, words):
+    for wt, word in words:
         match wt:
             case TokenType.WORD:
                 ret.append((InputTokenType.WORD, word))
@@ -106,10 +77,9 @@ def word_splitter(word):
 
 def tokenizer(expr: str, alias_map: dict[str, str], rel_names: set[str], node: dict, node_parent: dict|None) -> tuple[list[tuple[InputTokenType, any]], int]:
     max_table_idx = 0
-    token_types, tokens = plan_expr_parser.tokenizer(expr)
-    token_types = [TokenType(t) for t in token_types]
+    tokens = plan_expr_parser.tokenizer(expr)
     ret = []
-    for idx, (t, token) in enumerate(zip(token_types, tokens)):
+    for idx, (t, token) in enumerate(tokens):
         match t:
             case TokenType.LEFT_PARAN:
                 ret.append((InputTokenType.SYNTAX, SyntaxType.LEFT_PARAN))
@@ -162,7 +132,7 @@ def tokenizer(expr: str, alias_map: dict[str, str], rel_names: set[str], node: d
                 elif token in rel_names:
                     ret.append((InputTokenType.TABLE, token))
                     ret.append((InputTokenType.TABLE_IDX, 0))
-                elif idx > 0 and (token_types[idx - 1] == TokenType.DOT or token_types[idx - 1] == TokenType.LEFT_PARAN):
+                elif idx > 0 and (tokens[idx - 1][0] == TokenType.DOT or tokens[idx - 1][0] == TokenType.LEFT_PARAN):
                     if len(ret) >= 3 and ret[-1] == (InputTokenType.SYNTAX, SyntaxType.DOT) and ret[-3][0] == InputTokenType.TABLE:
                         table_name = ret[-3][1]
                     elif 'Relation Name' in node:
