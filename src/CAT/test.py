@@ -67,10 +67,10 @@ def main(args: argparse.Namespace):
 
     # read db info
     with DBConn(database) as db:
-        table_map, column_map, normalizer = db.get_db_info()
+        db_info = db.get_db_info()
 
     # create model
-    model = Cat(table_map, column_map, normalizer)
+    model = Cat(db_info)
     model.load(args.model)
 
     test_dataset = PlanDataset(dataset, model)

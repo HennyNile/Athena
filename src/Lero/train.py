@@ -92,10 +92,10 @@ def main(args: argparse.Namespace):
 
     # read db info
     with DBConn(database) as db:
-        table_map, _, _ = db.get_db_info()
+        db_info = db.get_db_info()
 
     # create model
-    model = Lero(table_map)
+    model = Lero(db_info.table_map)
     model.fit_train(train_queries)
     model.init_model()
 

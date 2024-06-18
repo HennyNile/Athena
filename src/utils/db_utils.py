@@ -3,6 +3,39 @@
 
 import psycopg2
 
+class DBInfo:
+    def __init__(self, table_map: dict[str, int], column_map: dict[tuple[str, str], int], normalizer: dict[tuple[str, str], tuple[int, int]]):
+        self.table_map = table_map
+        self.column_map = column_map
+        self.normalizer = normalizer
+        self.column_map_list = []
+        self.column_id_to_normalizer = {}
+        num_tables = len(table_map)
+        idx_to_table = {v: k for k, v in table_map.items()}
+        for i in range(num_tables):
+            table = idx_to_table[i]
+            table_column_map = {}
+            for (table, column), idx in column_map.items():
+                if table == i:
+                    table_column_map[column] = idx
+            self.column_map_list.append(table_column_map)
+        for (table, column), (m, M) in normalizer.items():
+            column_id = self.column_map[(table, column)]
+            self.column_id_to_normalizer[column_id] = (m, M)
+
+    def get_table_idx(self, table: str) -> int:
+        return self.table_map[table]
+    
+    def get_column_idx(self, table: str|int, column: str) -> int:
+        if isinstance(table, str):
+            return self.column_map[(table, column)]
+        return self.column_map_list[self.table_map[table]][column]
+
+    def get_normalizer(self, *args) -> tuple[int, int]:
+        if len(args) == 1 and isinstance(args[0], int):
+            return self.column_id_to_normalizer[args[0]]
+        return self.normalizer[args]
+
 class DBConn:
     def __init__(self, db_name):
         self.conn_str = f"dbname={db_name} host=10.16.70.166 user=dbgroup password=fucking_pg"
@@ -41,7 +74,7 @@ class DBConn:
                 if data_type == 'integer':
                     m, M = self.get_column_normalization(table_name, column_name)
                     normalizer[(table_name, column_name)] = (m, M)
-        return table_map, column_map, normalizer
+        return DBInfo(table_map, column_map, normalizer)
 
     def get_column_normalization(self, table, column):
         cur = self.conn.cursor()

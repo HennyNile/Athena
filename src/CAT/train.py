@@ -118,7 +118,7 @@ def train_cards(model, optimizer, dataloader, val_dataloader, num_epochs):
         # writer.add_scalar('val/p99', np.log10(p99), epoch)
         # print(f'p50: {p50}, p90: {p90}, p95: {p95}, p99: {p99}', flush=True)
 
-def train_cost(model, optimizer, dataloader, val_dataloader, num_epochs):
+def train_cost(model, optimizer, dataloader, val_dataloader, num_epochs, lr_scheduler=None):
     for epoch in range(num_epochs):
         model.model.cuda()
         model.model.train()
@@ -128,10 +128,12 @@ def train_cost(model, optimizer, dataloader, val_dataloader, num_epochs):
             cost = model.model.cost_output(x, pos, mask)
             pred = cost.view(-1, 2)
             label = cost_label.view(-1, 2)
-            pred = pred[:,0] - pred[:,1]
+            loss = ((label / label.sum(dim=1, keepdim=True)).nan_to_num(1.) * pred.softmax(dim=1)).sum()
+            # pred = pred[:,0] - pred[:,1]
             # label = (label[:,0] > label[:,1]).float()
-            label = F.sigmoid((label[:,0].log() - label[:,1].log()) * 2)
-            loss = F.binary_cross_entropy_with_logits(pred, label)
+            # label = F.sigmoid(label[:,0].log() - label[:,1].log()) * 2 - 1
+            # loss = F.mse_loss(pred, label)
+            # loss = F.binary_cross_entropy_with_logits(pred, label)
             # label_log_diff = label[:,0].log() - label[:,1].log()
             # weight = torch.abs(label_log_diff)
             # weight = weight.clamp(max=math.log(8.))
@@ -142,6 +144,8 @@ def train_cost(model, optimizer, dataloader, val_dataloader, num_epochs):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+        if lr_scheduler is not None:
+            lr_scheduler.step()
         loss = sum(losses) / len(losses)
         writer.add_scalar('train/cost_loss', loss, epoch)
         print(f'Epoch {epoch}, loss: {loss}')
@@ -154,7 +158,7 @@ def train_cost(model, optimizer, dataloader, val_dataloader, num_epochs):
         for x, pos, mask, _, cost_label in tqdm(val_dataloader):
             cost = model.model.cost_output(x, pos, mask)
             pred = cost.view(-1)
-            argmin_pred = torch.argmin(pred)
+            argmin_pred = torch.argmax(pred)
             pred_cost = cost_label[argmin_pred]
             min_cost = torch.min(cost_label)
             pred_costs.append(pred_cost.item())
@@ -183,10 +187,10 @@ def main(args: argparse.Namespace):
 
     # read db info
     with DBConn(database) as db:
-        table_map, column_map, normalizer = db.get_db_info()
+        db_info = db.get_db_info()
 
     # create model
-    model = Cat(table_map, column_map, normalizer)
+    model = Cat(db_info)
     model.fit_all(train_queries + val_queries)
     model.fit_train(train_queries)
     model.init_model()
@@ -211,8 +215,10 @@ def main(args: argparse.Namespace):
     val_dataset = CostDataset(val_dataset, 'tmp_val')
     dataloader = DataLoader(train_dataset, batch_sampler=pairwise_sampler, collate_fn=model.get_collate_fn2(torch.device('cpu')))
     val_dataloader = DataLoader(val_dataset, batch_sampler=val_sampler, collate_fn=model.get_collate_fn2(torch.device('cpu')))
-    optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-4)
-    train_cost(model, optimizer, dataloader, val_dataloader, args.cost_epoch)
+    optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-5)
+    lr_lambda = lambda epoch: 1. if epoch < 1 else 0.1
+    lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
+    train_cost(model, optimizer, dataloader, val_dataloader, args.cost_epoch, lr_scheduler=lr_scheduler)
     os.makedirs('models', exist_ok=True)
     model.save(f'models/cat_on_{database}_{workload}_{method}_{args.valset.split(".")[0]}.pth')
 

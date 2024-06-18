@@ -52,10 +52,10 @@ class Sample:
         self.exprs = exprs
 
 class Cat:
-    def __init__(self, table_map, column_map, normalizer):
-        self.table_map = table_map
-        self.column_map = column_map
-        self.normalizer = normalizer
+    def __init__(self, db_info):
+        self.table_map = db_info.table_map
+        self.column_map = db_info.column_map
+        self.normalizer = db_info.normalizer
         self.word_table: dict[str, int] = {}
         self.max_table_idx: int = 0
         self.max_card: float = 0.
@@ -158,7 +158,7 @@ class Cat:
         ret_x = torch.zeros(batch_size, max_seq_len, dim, dtype=torch.float32, device=device)
         ret_pos = torch.zeros(batch_size, max_seq_len, 4, dtype=torch.float32, device=device)
         ret_mask = torch.zeros(batch_size, max_seq_len, max_seq_len, dtype=torch.float32, device=device)
-        ret_cards = torch.zeros(batch_size, max_seq_len, dtype=torch.float32, device=device)
+        ret_cards = torch.full((batch_size, max_seq_len), -torch.inf, dtype=torch.float32, device=device)
         ret_cost = torch.tensor(costs, dtype=torch.float32, device=device)
 
         for idx, (x, pos, mask, cards) in enumerate(zip(xs, positions, masks, cards_batch)):
