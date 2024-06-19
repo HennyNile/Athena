@@ -81,7 +81,6 @@ def train(model, optimizer, dataloader, val_dataloader, num_epochs, lr_scheduler
             cost_loss = ((label / label.sum(dim=1, keepdim=True)).nan_to_num(1.) * pred.softmax(dim=1)).sum()
             cost_losses.append(cost_loss.item())
             loss = 100 * cards_loss + cost_loss
-            loss = cards_loss
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -91,7 +90,7 @@ def train(model, optimizer, dataloader, val_dataloader, num_epochs, lr_scheduler
         cost_loss = sum(cost_losses) / len(cost_losses)
         writer.add_scalar('train/cards_loss', cards_loss, epoch)
         writer.add_scalar('train/cost_loss', cost_loss, epoch)
-        print(f'Epoch {epoch}, cards_loss: {loss}, cost_loss: {cost_loss}', flush=True)
+        print(f'Epoch {epoch}, cards_loss: {cards_loss}, cost_loss: {cost_loss}', flush=True)
 
         model.model.eval()
         cards_losses = []
