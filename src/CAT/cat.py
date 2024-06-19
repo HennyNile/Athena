@@ -158,7 +158,7 @@ class Cat:
         ret_x = torch.zeros(batch_size, max_seq_len, dim, dtype=torch.float32, device=device)
         ret_pos = torch.zeros(batch_size, max_seq_len, 4, dtype=torch.float32, device=device)
         ret_mask = torch.zeros(batch_size, max_seq_len, max_seq_len, dtype=torch.float32, device=device)
-        ret_cards = torch.full((batch_size, max_seq_len), -torch.inf, dtype=torch.float32, device=device)
+        ret_cards = torch.zeros(batch_size, max_seq_len, dtype=torch.float32, device=device)
         ret_cost = torch.tensor(costs, dtype=torch.float32, device=device)
 
         for idx, (x, pos, mask, cards) in enumerate(zip(xs, positions, masks, cards_batch)):

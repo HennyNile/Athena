@@ -25,6 +25,41 @@ class QuerySampler:
         self.current_qid_idx += 1
         return ret
 
+class BatchedQuerySampler:
+    def __init__(self, dataset: list[list[dict]], batch_size: int):
+        self.batch_size = batch_size
+        num_queries = len(dataset)
+        self.all_indices = []
+        sample_idx = 0
+        for query in dataset:
+            self.all_indices.extend([sample_idx + i for i in range(len(query))])
+            sample_idx += len(query)
+        self.num_plans = [len(query) for query in dataset]
+        self.num_batches = (len(self.all_indices) + batch_size - 1) // batch_size
+        self.current_batch = None
+
+    def __len__(self):
+        return self.num_batches
+
+    def __iter__(self):
+        self.current_batch = 0
+        return self
+
+    def __next__(self):
+        if self.current_batch >= self.num_batches:
+            raise StopIteration
+        ret = self.all_indices[self.current_batch * self.batch_size: (self.current_batch + 1) * self.batch_size]
+        self.current_batch += 1
+        return ret
+    
+    def group(self, array: np.ndarray) -> list[np.ndarray]:
+        ret = []
+        idx = 0
+        for num in self.num_plans:
+            ret.append(array[idx:idx + num])
+            idx += num
+        return ret
+
 class ItemwiseSampler:
     def __init__(self, dataset: list[list[dict]], batch_size: int, shuffle = True, drop_last = False):
         self.batch_size = batch_size

@@ -16,7 +16,7 @@ class DBInfo:
             table = idx_to_table[i]
             table_column_map = {}
             for (table, column), idx in column_map.items():
-                if table == i:
+                if table_map[table] == i:
                     table_column_map[column] = idx
             self.column_map_list.append(table_column_map)
         for (table, column), (m, M) in normalizer.items():
