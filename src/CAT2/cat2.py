@@ -403,13 +403,14 @@ class Node:
         self.card = card
 
 class Sample:
-    def __init__(self, tokens: list[tuple[int, float]], nodes: list[Node], cost: float) -> None:
+    def __init__(self, tokens: list[tuple[int, float]], nodes: list[Node], cost: float, weight: float = 1.) -> None:
         self.tokens = tokens
         self.nodes = nodes
         self.cost = cost
+        self.weight = weight
 
 class Input:
-    def __init__(self, x: torch.Tensor, pos: torch.Tensor, mask: torch.Tensor, node_pos: torch.Tensor, node_mask: torch.Tensor, output_idx: torch.Tensor, cards: torch.Tensor, cost: float|torch.Tensor) -> None:
+    def __init__(self, x: torch.Tensor, pos: torch.Tensor, mask: torch.Tensor, node_pos: torch.Tensor, node_mask: torch.Tensor, output_idx: torch.Tensor, cards: torch.Tensor, cost: float|torch.Tensor, weight: float|torch.Tensor) -> None:
         self.x = x
         self.pos = pos
         self.mask = mask
@@ -418,6 +419,7 @@ class Input:
         self.output_idx = output_idx
         self.cards = cards
         self.cost = cost
+        self.weight = weight
 
     def cuda(self) -> 'Input':
         x_cuda = self.x.cuda()
@@ -431,7 +433,11 @@ class Input:
             cost_cuda = self.cost.cuda()
         else:
             cost_cuda = self.cost
-        return Input(x_cuda, pos_cuda, mask_cuda, node_pos_cuda, node_mask_cuda, output_idx_cuda, cards_cuda, cost_cuda)
+        if type(self.weight) == torch.Tensor:
+            weight_cuda = self.weight.cuda()
+        else:
+            weight_cuda = self.weight
+        return Input(x_cuda, pos_cuda, mask_cuda, node_pos_cuda, node_mask_cuda, output_idx_cuda, cards_cuda, cost_cuda, weight_cuda)
     
     def save(self, path: str) -> None:
         obj = {
@@ -442,14 +448,15 @@ class Input:
             "node_mask": self.node_mask,
             "output_idx": self.output_idx,
             "cards": self.cards,
-            "cost": self.cost
+            "cost": self.cost,
+            "weight": self.weight
         }
         torch.save(obj, path)
 
     @staticmethod
     def load(path: str) -> 'Input':
         obj = torch.load(path)
-        return Input(obj["x"], obj["pos"], obj["mask"], obj["node_pos"], obj["node_mask"], obj["output_idx"], obj["cards"], obj["cost"])
+        return Input(obj["x"], obj["pos"], obj["mask"], obj["node_pos"], obj["node_mask"], obj["output_idx"], obj["cards"], obj["cost"], obj["weight"])
 
 class Cat:
     def __init__(self, db_info: DBInfo):
@@ -499,10 +506,13 @@ class Cat:
     def init_model(self) -> None:
         self.model = CatModel(self.feature_dim, 128, 8, 256, 6)
 
-    def transform(self, plans: list[dict]) -> list[Sample]:
-        return [self._featurize_plan(plan) for plan in plans]
+    def transform(self, plans: list[dict], num_finished: list[int] = None) -> list[Sample]:
+        if num_finished is None:
+            num_finished = [1 for _ in plans]
+        assert len(num_finished) == len(plans)
+        return [self._featurize_plan(plan, 1. / num) for plan, num in zip(plans, num_finished)]
 
-    def transform_sample(self, sample: Sample):
+    def transform_sample(self, sample: Sample) -> Input:
         len_token = len(sample.tokens)
         len_node = len(sample.nodes)
         x = torch.zeros(len_token, self.feature_dim, dtype=torch.float32)
@@ -513,6 +523,7 @@ class Cat:
         output_idx = torch.zeros(len_node, dtype=torch.long)
         cards = torch.log(torch.tensor([node.card for node in sample.nodes], dtype=torch.float32) + 1.) / math.log(self.max_card + 1.)
         cost = sample.cost
+        weight = sample.weight
         for node_idx, node in enumerate(sample.nodes):
             for token_idx in range(node.token_begin, node.token_end):
                 token = sample.tokens[token_idx]
@@ -547,7 +558,7 @@ class Cat:
             node_mask[node_idx].fill_(-torch.inf)
             node_mask[node_idx, node.node_begin:node.node_end] = 0.
             output_idx[node_idx] = node.token_begin
-        return Input(x, pos, mask, node_pos, node_mask, output_idx, cards, cost)
+        return Input(x, pos, mask, node_pos, node_mask, output_idx, cards, cost, weight)
 
     def batch_transformed_samples(self, inputs: list[Input]):
         batch_size = len(inputs)
@@ -561,6 +572,7 @@ class Cat:
         ret_output_idx = torch.zeros(batch_size, max_node_len, dtype=torch.long)
         ret_cards = torch.zeros(batch_size, max_node_len, dtype=torch.float32)
         ret_cost = torch.tensor([input.cost for input in inputs], dtype=torch.float32)
+        ret_weight = torch.tensor([input.weight for input in inputs], dtype=torch.float32)
 
         for idx, input in enumerate(inputs):
             ret_x[idx, :input.x.shape[0]] = input.x
@@ -573,7 +585,7 @@ class Cat:
             ret_output_idx[idx, :input.output_idx.shape[0]] = input.output_idx
             ret_cards[idx, :input.cards.shape[0]] = input.cards
 
-        return Input(ret_x, ret_pos, ret_mask, ret_node_pos, ret_node_mask, ret_output_idx, ret_cards, ret_cost)
+        return Input(ret_x, ret_pos, ret_mask, ret_node_pos, ret_node_mask, ret_output_idx, ret_cards, ret_cost, ret_weight)
 
     def transform_samples(self, batch: list[Sample]):
         inputs = [self.transform_sample(sample) for sample in batch]
@@ -646,7 +658,7 @@ class Cat:
                     if token.word not in self.word_table:
                         self.word_table[token.word] = len(self.word_table)
 
-    def _featurize_plan(self, plan: dict) -> Sample:
+    def _featurize_plan(self, plan: dict, weight: float = 1.) -> Sample:
         plan_info, _ = get_alias_map(plan)
         tokens: list = []
         nodes: list[Node] = []
@@ -768,4 +780,4 @@ class Cat:
 
         dfs(root)
 
-        return Sample(tokens, nodes, plan.get('Execution Time', float('inf')))
+        return Sample(tokens, nodes, plan.get('Execution Time', float('inf')), weight)

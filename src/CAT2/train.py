@@ -23,12 +23,16 @@ from cat2 import Cat, Input
 sys.path.append('.')
 from src.utils.dataset_utils import read_dataset
 from src.utils.db_utils import DBConn
-from src.utils.sampler_utils import BatchedQuerySampler, PairwiseSampler
+from src.utils.sampler_utils import ItemwiseSampler, BatchedQuerySampler, PairwiseSampler, BalancedPairwiseSampler
 
 class PlanDataset(Dataset):
     def __init__(self, dataset: list[list[dict]], model: Cat, tmp_dir: str = None):
+        def get_num_finished(query: list[dict]):
+            return sum([1 if 'Execution Time' in plan else 0 for plan in query])
         plans = [plan for query in dataset for plan in query]
-        self.samples = model.transform(plans)
+        num_finished = [get_num_finished(query) for query in dataset for _ in query]
+        self.samples = model.transform(plans, num_finished)
+        self.inputs = [model.transform_sample(sample) for sample in self.samples]
         self.model = model
         self.num_samples = len(self.samples)
         self.tmp_dir = tmp_dir
@@ -48,7 +52,8 @@ class PlanDataset(Dataset):
 
     def __getitem__(self, idx):
         if self.tmp_dir is None:
-            return self.model.transform_sample(self.samples[idx])
+            # return self.model.transform_sample(self.samples[idx])
+            return self.inputs[idx]
         else:
             return Input.load(os.path.join(self.tmp_dir, f'{idx}.pt'))
 
@@ -61,18 +66,22 @@ def train(model, optimizer, dataloader, val_dataloader, num_epochs, lr_scheduler
         for input in tqdm(dataloader):
             input = input.cuda()
             cost, cards = model.model.cost_and_cards_output(input.x, input.pos, input.mask, input.node_pos, input.node_mask, input.output_idx)
+            query_weight = input.weight.unsqueeze(1).repeat(1, input.cards.shape[1])
             cards_mask = input.node_mask[:, 0].isfinite() & input.cards.isfinite()
             cards_output_vec = cards[cards_mask]
             cards_label_vec = input.cards[cards_mask]
+            query_weight_vec = query_weight[cards_mask]
             weight = cards_label_vec / torch.sum(cards_label_vec)
             weight = weight.clamp(min=1e-3)
+            weight = weight * query_weight_vec
             cards_loss = torch.sum(weight * (cards_output_vec - cards_label_vec) ** 2)
             cards_losses.append(cards_loss.item())
             pred = cost.view(-1, 2)
             label = input.cost.view(-1, 2)
             cost_loss = ((label / label.sum(dim=1, keepdim=True)).nan_to_num(1.) * pred.softmax(dim=1)).sum()
             cost_losses.append(cost_loss.item())
-            loss = 10 * cards_loss + cost_loss
+            loss = 100 * cards_loss + cost_loss
+            loss = cards_loss
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -86,21 +95,33 @@ def train(model, optimizer, dataloader, val_dataloader, num_epochs, lr_scheduler
 
         model.model.eval()
         cards_losses = []
+        qerrors = []
         preds = []
         labels = []
         for input in tqdm(val_dataloader):
             input = input.cuda()
             cost, cards = model.model.cost_and_cards_output(input.x, input.pos, input.mask, input.node_pos, input.node_mask, input.output_idx)
+            query_weight = input.weight.unsqueeze(1).repeat(1, input.cards.shape[1])
             cards_mask = input.node_mask[:, 0].isfinite() & input.cards.isfinite()
             cards_output_vec = cards[cards_mask]
             cards_label_vec = input.cards[cards_mask]
+            query_weight_vec = query_weight[cards_mask]
             weight = cards_label_vec / torch.sum(cards_label_vec)
             weight = weight.clamp(min=1e-3)
+            weight = weight * query_weight_vec
             cards_loss = torch.sum(weight * (cards_output_vec - cards_label_vec) ** 2)
             cards_losses.append(cards_loss.item())
+            qerror = model.q_error_loss(cards_output_vec, cards_label_vec)
+            qerrors.append(qerror.detach().cpu().numpy())
             pred = cost.view(-1)
             preds.append(pred.detach().cpu().numpy())
             labels.append(input.cost.detach().cpu().numpy())
+        cards_loss = sum(cards_losses) / len(cards_losses)
+        qerrors = np.concatenate(qerrors)
+        p50 = np.percentile(qerrors, 50)
+        p90 = np.percentile(qerrors, 90)
+        p95 = np.percentile(qerrors, 95)
+        p99 = np.percentile(qerrors, 99)
         preds = np.concatenate(preds)
         labels = np.concatenate(labels)
         preds = val_dataloader.batch_sampler.group(preds)
@@ -111,8 +132,13 @@ def train(model, optimizer, dataloader, val_dataloader, num_epochs, lr_scheduler
         total_pred_cost = sum(pred_costs)
         total_min_cost = sum(min_costs)
         ability = total_min_cost / total_pred_cost
+        writer.add_scalar('val/cards_loss', cards_loss, epoch)
+        writer.add_scalar('val/p50', np.log10(p50), epoch)
+        writer.add_scalar('val/p90', np.log10(p90), epoch)
+        writer.add_scalar('val/p95', np.log10(p95), epoch)
+        writer.add_scalar('val/p99', np.log10(p99), epoch)
         writer.add_scalar('val/ability', ability, epoch)
-        print(f'Validation ability: {ability * 100}%', flush=True)
+        print(f'Validation cards_loss: {cards_loss}, p50: {p50}, p90: {p90}, p95: {p95}, p99: {p99}, ability: {ability * 100}%', flush=True)
 
 def main(args: argparse.Namespace):
     dataset_regex = re.compile(r'([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)')
@@ -140,13 +166,14 @@ def main(args: argparse.Namespace):
     model.fit_train(train_queries)
     model.init_model()
 
-    train_dataset = PlanDataset(train_queries, model, 'tmp_train')
+    train_dataset = PlanDataset(train_queries, model)
+    itemwise_sampler = ItemwiseSampler(train_queries, args.batch_size)
     pairwise_sampler = PairwiseSampler(train_queries, args.batch_size // 2)
-    val_dataset = PlanDataset(val_queries, model, 'tmp_val')
+    val_dataset = PlanDataset(val_queries, model)
     val_sampler = BatchedQuerySampler(val_queries, args.batch_size)
 
-    dataloader = DataLoader(train_dataset, batch_sampler=pairwise_sampler, collate_fn=model.batch_transformed_samples)
-    val_dataloader = DataLoader(val_dataset, batch_sampler=val_sampler, collate_fn=model.batch_transformed_samples)
+    dataloader = DataLoader(train_dataset, batch_sampler=pairwise_sampler, collate_fn=model.batch_transformed_samples, num_workers=8)
+    val_dataloader = DataLoader(val_dataset, batch_sampler=val_sampler, collate_fn=model.batch_transformed_samples, num_workers=8)
     optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-4)
     train(model, optimizer, dataloader, val_dataloader, args.epoch)
     os.makedirs('models', exist_ok=True)

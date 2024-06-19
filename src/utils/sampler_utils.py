@@ -168,8 +168,9 @@ class BalancedPairwiseSampler:
                 for j in range(i + 1, len(query)):
                     if 'Execution Time' in query[i] or 'Execution Time' in query[j]:
                         indices.append((sample_idx + i, sample_idx + j))
-            self.states.append(GroupState(indices, len(query), shuffle))
-            sample_idx += len(query)
+            num_finished_sample = sum([1 if 'Execution Time' in plan else 0 for plan in query])
+            self.states.append(GroupState(indices, num_finished_sample, shuffle))
+            sample_idx += num_finished_sample
         self.total_len = sample_idx
         if not drop_last:
             self.num_batches = (self.total_len + batch_size - 1) // batch_size
