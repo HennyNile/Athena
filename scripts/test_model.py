@@ -42,8 +42,8 @@ def main(args: argparse.Namespace):
             assert len(records) >=  query_idx
             if len(records) == query_idx: # append a empty dict for new query
                 records.append({})
-            if selected_plans_idx[query_idx] in records[query_idx]: # the test result exists
-                test_execution_time_list.append(sum(records[query_idx][selected_plans_idx[query_idx]][2:])/3)
+            if str(selected_plans_idx[query_idx]) in records[query_idx]: # the test result exists
+                test_execution_time_list.append(sum(records[query_idx][str(selected_plans_idx[query_idx])][2:])/3)
             else: 
                 leading_hint = plan_to_leading_hint(candidate_plans[query_idx][selected_plans_idx[query_idx]])
                 query = f'/*+ Leading({leading_hint}) */ {query}'
