@@ -3,6 +3,7 @@ import math
 import sys
 
 import torch
+from tqdm import tqdm
 
 from model import CatModel
 
@@ -510,7 +511,8 @@ class Cat:
         if num_finished is None:
             num_finished = [1 for _ in plans]
         assert len(num_finished) == len(plans)
-        return [self._featurize_plan(plan, 1. / num) for plan, num in zip(plans, num_finished)]
+        print("Preparing samples:")
+        return [self._featurize_plan(plan, 1. / num) for plan, num in zip(tqdm(plans), num_finished)]
 
     def transform_sample(self, sample: Sample) -> Input:
         len_token = len(sample.tokens)
