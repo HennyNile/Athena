@@ -36,7 +36,32 @@ def tokenizer(expr: str) -> list[tuple[TokenType, str]]:
     idx = 0
     in_quote = False
     while idx < len(expr):
-        if expr[idx] == '(':
+        if in_quote:
+            if expr[idx] == '"':
+                start = idx
+                idx += 1
+                while idx < len(expr) and expr[idx] != '"':
+                    idx += 1
+                if idx == len(expr):
+                    raise ValueError(f'Invalid quote: {expr[start]} at {expr} : {start}')
+                idx += 1
+                tokens.append((TokenType.DOUBLE_QUOTE, expr[start:idx]))
+            elif expr[idx] == ',':
+                tokens.append((TokenType.COMMA, ','))
+                idx += 1
+            elif expr[idx] == '}':
+                if idx + 1 < len(expr) and expr[idx + 1] == "'":
+                    tokens.append((TokenType.ARRAY_END, "}'"))
+                    idx += 2
+                    in_quote = False
+                else:
+                    raise ValueError(f'Invalid character: {expr[idx]} at {expr} : {idx}')
+            else:
+                start = idx
+                while idx < len(expr) and expr[idx] != ',' and expr[idx] != '}':
+                    idx += 1
+                tokens.append((TokenType.WORD, expr[start:idx]))
+        elif expr[idx] == '(':
             tokens.append((TokenType.LEFT_PARAN, '('))
             idx += 1
         elif expr[idx] == ')':
@@ -52,13 +77,8 @@ def tokenizer(expr: str) -> list[tuple[TokenType, str]]:
             tokens.append((TokenType.LEFT_CURLY, '{'))
             idx += 1
         elif expr[idx] == '}':
-            if idx + 1 < len(expr) and expr[idx + 1] == "'":
-                tokens.append((TokenType.ARRAY_END, "}'"))
-                idx += 2
-                in_quote = False
-            else:
-                tokens.append((TokenType.RIGHT_CURLY, '}'))
-                idx += 1
+            tokens.append((TokenType.RIGHT_CURLY, '}'))
+            idx += 1
         elif expr[idx] == '=':
             tokens.append((TokenType.EQUAL, '='))
             idx += 1
@@ -135,14 +155,9 @@ def tokenizer(expr: str) -> list[tuple[TokenType, str]]:
         elif expr[idx].isalpha():
             start = idx
             idx += 1
-            if in_quote:
-                while idx < len(expr) and expr[idx] != ',' and expr[idx] != '}':
-                    idx += 1
-                tokens.append((TokenType.WORD, expr[start:idx]))
-            else:
-                while idx < len(expr) and (expr[idx].isalnum() or expr[idx] == '_' or expr[idx] == '-'):
-                    idx += 1
-                tokens.append((TokenType.IDENTIFIER, expr[start:idx]))
+            while idx < len(expr) and (expr[idx].isalnum() or expr[idx] == '_' or expr[idx] == '-'):
+                idx += 1
+            tokens.append((TokenType.IDENTIFIER, expr[start:idx]))
         elif expr[idx].isdigit():
             start = idx
             idx += 1
