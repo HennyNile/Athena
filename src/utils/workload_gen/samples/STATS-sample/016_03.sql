@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM posts as p, tags as t, votes as v WHERE p.Id = t.ExcerptPostId AND p.OwnerUserId = v.UserId AND p.CreationDate >= '2011-06-20 09:30:35'::timestamp;
