@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM comments as c, badges as b WHERE c.UserId = b.UserId AND c.Score = 20 AND b.Date <= '2012-12-22 20:06:12'::timestamp;

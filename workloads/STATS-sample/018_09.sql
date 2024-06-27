@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM posts as p, postLinks as pl, users as u WHERE p.Id = pl.PostId AND p.OwnerUserId = u.Id AND p.CommentCount <= 45 AND u.CreationDate <= '2011-11-05 09:00:30'::timestamp;

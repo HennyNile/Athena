@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM badges as b, posts as p WHERE b.UserId = p.OwnerUserId AND b.Date <= '2013-12-13 16:46:00'::timestamp AND p.AnswerCount >= 56 AND p.AnswerCount <= 133 AND p.CommentCount >= 7 AND p.CommentCount <= 33;

@@ -84,10 +84,10 @@ def main(args):
                             # generate new predicate
                             if '::timestamp' in init_pred:
                                 new_pred_value = random_date(min_value, max_value).strftime('%Y-%m-%d %H:%M:%S')
-                                new_pred = f'{table_alias}.{column} {op} \'{new_pred_value}\'::timestamp'
+                                new_pred = f'{table_alias}.{column}{op}\'{new_pred_value}\'::timestamp'
                             else:
                                 new_pred_value = random.randint(min_value, max_value)
-                                new_pred = f'{table_alias}.{column} {op} {new_pred_value}'
+                                new_pred = f'{table_alias}.{column}{op}{new_pred_value}'
                             
 
                             # update predicate_stats

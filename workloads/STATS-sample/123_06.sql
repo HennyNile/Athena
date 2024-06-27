@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM postHistory as ph, votes as v, users as u, badges as b WHERE u.Id = b.UserId AND u.Id = ph.UserId AND u.Id = v.UserId AND v.CreationDate<='2014-05-21 03:01:00'::timestamp AND u.DownVotes>=7 AND u.DownVotes<=1241 AND u.UpVotes>=2871 AND u.UpVotes<=3045 AND b.Date>='2013-03-29 16:54:39'::timestamp;

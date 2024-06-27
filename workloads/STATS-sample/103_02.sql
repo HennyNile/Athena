@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM comments as c, postHistory as ph, votes as v, users as u WHERE v.UserId = u.Id AND c.UserId = u.Id AND ph.UserId = u.Id AND ph.CreationDate>='2012-08-10 07:25:14'::timestamp AND ph.CreationDate<='2013-10-13 22:06:01'::timestamp AND u.DownVotes<=932 AND u.UpVotes>=10983 AND u.UpVotes<=11275;
