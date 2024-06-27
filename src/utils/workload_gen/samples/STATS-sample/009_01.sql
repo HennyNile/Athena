@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM comments as c, posts as p, users as u WHERE c.UserId = u.Id AND u.Id = p.OwnerUserId AND c.CreationDate >= '2010-03-11 18:59:13'::timestamp AND c.CreationDate <= '2012-02-25 00:11:00'::timestamp AND p.ViewCount >= 18836 AND p.ViewCount <= 141868 AND p.CommentCount >= 6 AND p.CommentCount <= 30 AND p.FavoriteCount >= 54 AND p.FavoriteCount <= 217;

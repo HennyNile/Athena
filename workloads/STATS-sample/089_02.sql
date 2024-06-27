@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM postHistory as ph, posts as p, users as u WHERE p.OwnerUserId = u.Id AND ph.UserId = u.Id AND ph.CreationDate>='2010-11-29 17:01:56'::timestamp AND p.FavoriteCount<=51 AND u.Views>=19876 AND u.UpVotes>=9072 AND u.CreationDate>='2010-08-01 23:30:07'::timestamp AND u.CreationDate<='2013-02-01 08:12:17'::timestamp;

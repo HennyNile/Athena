@@ -109,3 +109,11 @@ class DBConn:
             cur.execute("SET statement_timeout = 0")
         cur.execute(f"EXPLAIN (ANALYZE ON, TIMING OFF, SUMMARY ON, FORMAT JSON) {sql}")
         return cur.fetchone()[0][0]
+    
+    def get_query_result(self, sql, timeout=None):
+        cur = self.conn.cursor()
+        if timeout is not None:
+            cur.execute(f"SET statement_timeout = {timeout}")
+        cur = self.conn.cursor()
+        cur.execute(sql)
+        return cur.fetchall()

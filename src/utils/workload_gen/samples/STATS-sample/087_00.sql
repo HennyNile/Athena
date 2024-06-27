@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM comments as c, badges as b, users as u WHERE c.UserId = u.Id AND b.UserId = u.Id AND c.Score=15 AND c.CreationDate>='2010-10-06 23:42:49'::timestamp AND b.Date>='2011-06-09 18:51:34'::timestamp AND b.Date<='2013-04-29 20:05:45'::timestamp AND u.UpVotes>=9814;

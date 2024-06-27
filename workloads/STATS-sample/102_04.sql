@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM votes as v, posts as p, badges as b, users as u WHERE u.Id = b.UserId AND u.Id = p.OwnerUserId AND u.Id = v.UserId AND p.PostTypeId=4 AND p.CommentCount>=0 AND p.CommentCount<=43 AND u.Reputation>=36237 AND u.DownVotes>=777 AND u.DownVotes<=1783;

@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM postHistory as ph, posts as p, users as u, badges as b WHERE u.Id = p.OwnerUserId AND p.OwnerUserId = ph.UserId AND ph.UserId = b.UserId AND ph.PostHistoryTypeId = 14 AND p.Score >= 31 AND u.Reputation >= 43207 AND u.UpVotes >= 1786 AND u.UpVotes <= 10567;

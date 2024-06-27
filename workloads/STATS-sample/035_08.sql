@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM comments as c, votes as v, badges as b, users as u WHERE u.Id = c.UserId AND u.Id = v.UserId AND u.Id = b.UserId AND c.Score = 15 AND v.BountyAmount >= 46 AND v.BountyAmount <= 180 AND v.CreationDate >= '2009-03-11 16:15:17'::timestamp AND u.UpVotes >= 5688 AND u.UpVotes <= 11402;
