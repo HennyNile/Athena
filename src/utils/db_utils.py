@@ -4,10 +4,11 @@
 import psycopg2
 
 class DBInfo:
-    def __init__(self, table_map: dict[str, int], column_map: dict[tuple[str, str], int], normalizer: dict[tuple[str, str], tuple[int, int]]):
+    def __init__(self, table_map: dict[str, int], column_map: dict[tuple[str, str], int], normalizer: dict[tuple[str, str], tuple[int, int]], data_types: dict[int, str]):
         self.table_map = table_map
         self.column_map = column_map
         self.normalizer = normalizer
+        self.data_types = data_types
         self.column_map_list = []
         self.column_id_to_normalizer = {}
         num_tables = len(table_map)
@@ -62,6 +63,7 @@ class DBConn:
         table_map = {}
         column_map = {}
         normalizer = {}
+        datatype_map = {}
         table_names = [table_name[0] for table_name in cur.fetchall()]
         for table_name in table_names:
             table_map[table_name] = len(table_map)
@@ -70,11 +72,12 @@ class DBConn:
             column_names = [column_name[0] for column_name in results]
             data_types = [data_type[1] for data_type in results]
             for column_name, data_type in zip(column_names, data_types):
+                datatype_map[len(column_map)] = data_type
                 column_map[(table_name, column_name)] = len(column_map)
                 if data_type == 'integer':
                     m, M = self.get_column_normalization(table_name, column_name)
                     normalizer[(table_name, column_name)] = (m, M)
-        return DBInfo(table_map, column_map, normalizer)
+        return DBInfo(table_map, column_map, normalizer, datatype_map)
 
     def get_column_normalization(self, table, column):
         cur = self.conn.cursor()

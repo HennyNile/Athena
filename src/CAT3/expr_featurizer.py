@@ -1,5 +1,9 @@
+from abc import ABCMeta, abstractmethod
+from collections.abc import Callable
 from enum import Enum
 import sys
+
+import torch
 
 sys.path.append('.')
 from src.utils.tokenizer import TokenType, tokenizer
@@ -14,8 +18,16 @@ class OpType(Enum):
     Less    = 1
     Like    = 2
 
-class Entity:
+class Entity(metaclass=ABCMeta):
     def __init__(self):
+        pass
+
+    @abstractmethod
+    def __eq__(self, value: 'Entity') -> bool:
+        pass
+
+    @abstractmethod
+    def __str__(self) -> str:
         pass
 
 class Column(Entity):
@@ -25,6 +37,11 @@ class Column(Entity):
         self.alias = alias
         self.column = column
 
+    def __eq__(self, value: Entity) -> bool:
+        if type(value) != Column:
+            return False
+        return value.table == self.table and value.alias == self.alias and value.column == self.column
+
     def __str__(self) -> str:
         return f'Column({self.table}, {self.alias}, {self.column})'
 
@@ -32,6 +49,11 @@ class Number(Entity):
     def __init__(self, value: float):
         super().__init__()
         self.value = value
+
+    def __eq__(self, value: Entity) -> bool:
+        if type(value) != Number:
+            return False
+        return value.value == self.value
 
     def __str__(self) -> str:
         return f'Number({self.value})'
@@ -41,12 +63,20 @@ class Array(Entity):
         super().__init__()
         self.size = size
 
+    def __eq__(self, value: Entity) -> bool:
+        if type(value) != Array:
+            return False
+        return value.size == self.size
+
     def __str__(self) -> str:
         return f'Array({self.size})'
-    
+
 class Null(Entity):
     def __init__(self):
         super().__init__()
+
+    def __eq__(self, value: Entity) -> bool:
+        return type(value) == Null
     
     def __str__(self) -> str:
         return f'NULL'
@@ -55,6 +85,9 @@ class Operator:
     def __init__(self, positive: bool, op: OpType):
         self.positive = positive
         self.op = op
+
+    def __eq__(self, value: 'Operator') -> bool:
+        return value.positive == self.positive and value.op == self.op
 
     def __str__(self) -> str:
         match self.op:
@@ -74,17 +107,41 @@ class Operator:
                 else:
                     return 'NOT LIKE'
 
-class ExprTreeNode:
+class ExprTreeNode(metaclass=ABCMeta):
     def __init__(self):
+        pass
+
+    @abstractmethod
+    def children(self) -> list['ExprTreeNode']:
+        pass
+
+    @abstractmethod
+    def __eq__(self, value: 'ExprTreeNode') -> bool:
+        pass
+
+    @abstractmethod
+    def __str__(self) -> str:
         pass
 
 class BoolOperatorNode(ExprTreeNode):
     def __init__(self, op: str, *nodes):
         self.op = op
-        self.children_: list[ExprTreeNode] = nodes
+        self.children_: list[ExprTreeNode] = list(nodes)
 
     def children(self) -> list[ExprTreeNode]:
         return self.children_
+
+    def __eq__(self, value: ExprTreeNode) -> bool:
+        if type(value) != BoolOperatorNode:
+            return False
+        if value.op != self.op:
+            return False
+        if len(value.children_) != len(self.children_):
+            return False
+        for other, child in zip(value.children_, self.children_):
+            if other != child:
+                return False
+        return True
 
     def __str__(self) -> str:
         return self.op
@@ -97,13 +154,80 @@ class AtomicNode(ExprTreeNode):
 
     def children(self) -> list[ExprTreeNode]:
         return []
+    
+    def __eq__(self, value: ExprTreeNode) -> bool:
+        if type(value) != AtomicNode:
+            return False
+        return value.left == self.left and value.op == self.op and value.right == self.right
 
     def __str__(self) -> str:
         return f'{self.left} {self.op} {self.right}'
+    
+class IndexTreeNode:
+    def __init__(self):
+        self.children = []
 
 class ExprTree:
     def __init__(self, root):
         self.root = root
+        self.vecs = []
+
+    def index_tree(self, idx_begin: int):
+        def dfs(node):
+            if type(node) == BoolOperatorNode:
+                ret = IndexTreeNode()
+                for child in node.children():
+                    ret.children.append(dfs(child))
+                return ret
+            elif type(node) == AtomicNode:
+                nonlocal idx_begin
+                ret = idx_begin
+                idx_begin += 1
+                return ret
+            else:
+                raise RuntimeError("Wrong node type")
+        root = dfs(self.root)
+        return root, idx_begin
+    
+    def cache_features(self, featurize_node: Callable[[AtomicNode], torch.Tensor]) -> None:
+        def dfs(node):
+            if type(node) == BoolOperatorNode:
+                for child in node.children():
+                    dfs(child)
+            elif type(node) == AtomicNode:
+                self.vecs.append(featurize_node(node))
+            else:
+                raise RuntimeError("Wrong node type")
+        dfs(self.root)
+
+    def combine_disjunction(self):
+        changed = True
+        while changed:
+            changed = False
+            def dfs(node: ExprTreeNode, parent: BoolOperatorNode|None = None):
+                nonlocal changed
+                children = node.children()
+                if type(node) == BoolOperatorNode and node.op == 'OR' and len(node.children()) > 0:
+                    first = children[0]
+                    if type(first) == AtomicNode and first.op.positive and type(first.right) == Array:
+                        all_same = True
+                        for child in children[1:]:
+                            if type(child) != AtomicNode or child.left != first.left or child.op != first.op or type(child.right) != Array:
+                                all_same = False
+                                break
+                        if all_same:
+                            new_node = AtomicNode(first.left, first.op, Array(sum([child.right.size for child in children])))
+                            if parent is not None:
+                                for i, child in enumerate(parent.children_):
+                                    if child is node:
+                                        parent.children_[i] = new_node
+                            else:
+                                self.root = new_node
+                            changed = True
+                            return
+                for child in children:
+                    dfs(child, node)
+            dfs(self.root)
 
     def __str__(self) -> str:
         lines = []
@@ -133,8 +257,8 @@ class ExprParser:
         self.node_parent = node_parent
         self.tokens = tokenizer(expr)
         self.max_alias_idx = 0
+        self.max_array_len = 1
         self.idx = 0
-        print(expr)
 
     def __call__(self) -> ExprTree:
         ret = ExprTree(self.parse_expr())
@@ -153,6 +277,17 @@ class ExprParser:
                 self.idx += 1
                 return next_t, next_token
             raise RuntimeError(f'Unexpected token: {next_t}, {next_token} at {self.idx}')
+
+    # <expr>        :== <term> [("AND" | "OR") <expr>]
+    # <term>        :== "(" <expr> ")" | <column> <op> <entity>
+    # <entity>      :== <column> | <value> | <array> | "NULL" | <text>
+    # <column>      :== "(" <column name> ")" "::" "text" | <column name>
+    # <column name> :== identifier "." identifier | identifier
+    # <op>          :== "=" | "!=" | "<" | "<=" | ">" | ">=" | "~~" | "!~~" | "IS" | "IS NOT"
+    # <value>       :== number
+    # <array>       :== "ANY" "'{" [<array list>] "}'" "::" "text"
+    # <array list>  :== (word | double_quote | single_quote) ["," <array list>]
+    # <text>        :== single_quote "::" "text"
 
     def parse_expr(self) -> ExprTreeNode:
         ret = self.parse_term()
@@ -210,7 +345,7 @@ class ExprParser:
 
     def parse_column_name(self) -> Column:
         _, first_name = self.expect(TokenType.IDENTIFIER)
-        t, token = self.tokens[self.idx]
+        t, _ = self.tokens[self.idx]
         if t == TokenType.DOT:
             self.idx += 1
             _, second_name = self.expect(TokenType.IDENTIFIER)
@@ -244,6 +379,7 @@ class ExprParser:
             else:
                 raise RuntimeError(f'Unknown alias name for column: {first_name}')
             column_idx = self.db_info.column_map_list[table_idx][first_name]
+            self.max_alias_idx = max(self.max_alias_idx, alias_idx)
             return Column(table_idx, alias_idx, column_idx)
 
     def parse_op(self) -> tuple[Operator, float]:
@@ -271,8 +407,7 @@ class ExprParser:
                 ret = Operator(False, OpType.Like)
             case TokenType.IDENTIFIER:
                 if token == 'IS':
-                    t, token = self.tokens[self.idx]
-                    if t == TokenType.IDENTIFIER and token == 'NOT':
+                    if self.idx < len(self.tokens) and self.tokens[self.idx] == (TokenType.IDENTIFIER, 'NOT'):
                         self.idx += 1
                         ret = Operator(False, OpType.Precise)
                     else:
@@ -319,6 +454,10 @@ class ExprParser:
         t, token = self.tokens[self.idx]
         if t == TokenType.ARRAY_END:
             self.idx += 1
+            self.expect(TokenType.ATTRIBUTE)
+            self.expect(TokenType.IDENTIFIER, ['text'])
+            self.expect(TokenType.LEFT_BRACKET)
+            self.expect(TokenType.RIGHT_BRACKET)
             self.expect(TokenType.RIGHT_PARAN)
             return Array(0)
         array_len = 0
@@ -333,4 +472,5 @@ class ExprParser:
         self.expect(TokenType.LEFT_BRACKET)
         self.expect(TokenType.RIGHT_BRACKET)
         self.expect(TokenType.RIGHT_PARAN)
+        self.max_array_len = max(self.max_array_len, array_len)
         return Array(array_len)
