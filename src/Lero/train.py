@@ -36,7 +36,7 @@ class PlanDataset(Dataset):
     def __getitem__(self, idx):
         return self.samples[idx]
 
-def train(model, optimizer, dataloader, val_dataloader, num_epochs):
+def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epochs):
     for epoch in range(num_epochs):
         model.model.cuda()
         model.model.train()
@@ -45,6 +45,7 @@ def train(model, optimizer, dataloader, val_dataloader, num_epochs):
             cost = model.model(trees)
             pred = cost.view(-1, 2)
             label = cost_label.view(-1, 2)
+            # loss = ((label / label.sum(dim=1, keepdim=True)).nan_to_num(1.) * pred.softmax(dim=1)).sum()
             pred = pred[:,0] - pred[:,1]
             label = (label[:,0] > label[:,1]).float()
             loss = F.binary_cross_entropy_with_logits(pred, label)
@@ -73,6 +74,34 @@ def train(model, optimizer, dataloader, val_dataloader, num_epochs):
         ability = total_min_cost / total_pred_cost
         writer.add_scalar('val/ability', ability, epoch)
         print(f'Validation ability: {ability * 100}%', flush=True)
+
+        if test_dataloader is not None:
+            losses = []
+            pred_costs = []
+            min_costs = []
+            num_timeout = 0
+            for trees, cost_label in tqdm(test_dataloader):
+                cost = model.model(trees)
+                pred = cost.view(-1)
+                argmin_pred = torch.argmin(pred)
+                pred_cost = cost_label[argmin_pred]
+                min_cost = torch.min(cost_label)
+                if pred_cost.item() == float('inf'):
+                    num_timeout += 1
+                    timeout_cost = cost_label[0].item()
+                    if timeout_cost >= 240000:
+                        timeout_cost = max(cost_label[0], 240000)
+                    elif timeout_cost <= 5000:
+                        timeout_cost = 5000
+                    pred_costs.append(timeout_cost)
+                else:
+                    pred_costs.append(pred_cost.item())
+                min_costs.append(min_cost.item())
+            total_pred_cost = sum(pred_costs)
+            total_min_cost = sum(min_costs)
+            ability = total_min_cost / total_pred_cost
+            writer.add_scalar('test/ability', ability, epoch)
+            print(f'Test ability: {ability * 100}%, pred time: {total_pred_cost / 1000}, min time: {total_min_cost / 1000}, num timeout: {num_timeout}', flush=True)
 
 def main(args: argparse.Namespace):
     dataset_regex = re.compile(r'([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)')
@@ -106,14 +135,22 @@ def main(args: argparse.Namespace):
 
     dataloader = DataLoader(train_dataset, batch_sampler=pairwise_sampler, collate_fn=model._transform_samples)
     val_dataloader = DataLoader(val_dataset, batch_sampler=val_sampler, collate_fn=model._transform_samples)
+    if args.test != '':
+        _, test_queries = read_dataset(os.path.join('datasets', args.test))
+        test_dataset = PlanDataset(test_queries, model)
+        test_sampler = QuerySampler(test_queries)
+        test_dataloader = DataLoader(test_dataset, batch_sampler=test_sampler, collate_fn=model._transform_samples)
+    else:
+        test_dataloader = None
     optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-4)
-    train(model, optimizer, dataloader, val_dataloader, args.epoch)
+    train(model, optimizer, dataloader, val_dataloader, test_dataloader, args.epoch)
     os.makedirs('models', exist_ok=True)
     model.save(f'models/lero_on_{database}_{workload}_{method}_{args.valset.split(".")[0]}.pth')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='imdb/JOB/Bao')
+    parser.add_argument('--test', type=str, default='')
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--epoch', type=int, default=100)
     parser.add_argument('--batch_size', type=int, default=64)

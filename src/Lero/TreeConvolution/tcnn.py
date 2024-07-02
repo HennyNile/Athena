@@ -24,6 +24,18 @@ class BinaryTreeConv(nn.Module):
         zero_vec = zero_vec.to(results.device)
         results = torch.cat((zero_vec, results), dim=2)
         return (results, orig_idxes)
+    
+class ChannelMixer(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.__in_channels = in_channels
+        self.__out_channels = out_channels
+        self.weights = nn.Linear(in_channels, out_channels)
+
+    def forward(self, flat_data):
+        trees, _ = flat_data
+        trees = self.weights(trees.transpose(1, 2)).transpose(1, 2)
+        return trees
 
 class TreeActivation(nn.Module):
     def __init__(self, activation):

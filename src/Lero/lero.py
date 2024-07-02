@@ -35,6 +35,7 @@ class Lero:
         self.rows_offset = self.width_offset + 1
         self.min_est_card = float('inf')
         self.max_est_card = 0.
+        self.max_width = 0.
         self.model: torch.nn.Module = None
 
     def fit_train(self, dataset: list[list[dict]]) -> None:
@@ -43,6 +44,9 @@ class Lero:
             est_card = node['Plan Rows']
             self.min_est_card = min(self.min_est_card, est_card)
             self.max_est_card = max(self.max_est_card, est_card)
+
+            width = node['Plan Width']
+            self.max_width = max(self.max_width, width)
 
             for child in node.get('Plans', []):
                 dfs(child)
@@ -66,6 +70,7 @@ class Lero:
         model_state = {
             'min_card': self.min_est_card,
             'max_card': self.max_est_card,
+            'max_width': self.max_width,
             'state_dict': self.model.state_dict()
         }
         torch.save(model_state, path)
@@ -74,6 +79,7 @@ class Lero:
         model_state = torch.load(path)
         self.min_est_card = model_state['min_card']
         self.max_est_card = model_state['max_card']
+        self.max_width = model_state['max_width']
         self.init_model()
         self.model.load_state_dict(model_state['state_dict'])
 
@@ -85,6 +91,9 @@ class Lero:
 
     def _norm_est_card(self, est_card: float) -> float:
         return (math.log(est_card + 1) - self.min_est_card) / (self.max_est_card - self.min_est_card)
+    
+    def _norm_width(self, width: int) -> float:
+        return width / self.max_width
 
     def _pad_sample(self) -> LeroSample:
         feature = np.zeros(self.input_feature_dim, dtype=np.float32)
@@ -134,5 +143,6 @@ class Lero:
         for rel in relations:
             arr[self.rel_offset + self.input_relations[rel]] += 1.
         arr[self.width_offset] = node['Plan Width']
+        # arr[self.width_offset] = self._norm_width(node['Plan Width'])
         arr[self.rows_offset] = self._norm_est_card(node['Plan Rows'])
         return arr

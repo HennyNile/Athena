@@ -1,7 +1,22 @@
 from torch import nn
 
 from TreeConvolution.tcnn import (BinaryTreeConv, DynamicPooling,
-                                  TreeActivation, TreeLayerNorm)
+                                  TreeActivation, TreeLayerNorm, ChannelMixer)
+
+class LeroBlock(nn.Module):
+    def __init__(self, input_dim, output_dim) -> None:
+        super().__init__()
+        self.conv1 = BinaryTreeConv(input_dim, output_dim)
+        self.conv2 = ChannelMixer(input_dim, output_dim)
+        self.norm = TreeLayerNorm()
+        self.activation = TreeActivation(nn.LeakyReLU())
+
+    def forward(self, flat_data):
+        y = self.conv1(flat_data)
+        y = self.norm(y)
+        y_tree, y_indices = y
+        x_tree = self.conv2(flat_data)
+        return self.activation((x_tree + y_tree, y_indices))
 
 class LeroNet(nn.Module):
     def __init__(self, input_feature_dim) -> None:
@@ -21,6 +36,15 @@ class LeroNet(nn.Module):
             nn.LeakyReLU(),
             nn.Linear(32, 1)
         )
+        # self.tree_conv = nn.Sequential(
+        #     LeroBlock(self.input_feature_dim, 256),
+        #     LeroBlock(256, 128),
+        #     LeroBlock(128, 64),
+        #     DynamicPooling(),
+        #     nn.Linear(64, 32),
+        #     nn.LeakyReLU(),
+        #     nn.Linear(32, 1)
+        # )
 
     def forward(self, trees):
         return self.tree_conv(trees)
