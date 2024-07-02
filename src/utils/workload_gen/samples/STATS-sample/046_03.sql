@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM comments as c, posts as p, postHistory as ph, votes as v, users as u WHERE u.Id = c.UserId AND c.UserId = p.OwnerUserId AND p.OwnerUserId = ph.UserId AND ph.UserId = v.UserId AND p.Score<=6 AND p.AnswerCount>=4 AND p.AnswerCount<=8 AND p.CommentCount>=5 AND p.FavoriteCount<=4 AND ph.PostHistoryTypeId=3 AND v.BountyAmount<=50 AND u.DownVotes>=0;

@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM postHistory as ph, posts as p, votes as v, users as u WHERE u.Id = p.OwnerUserId AND p.Id = ph.PostId AND p.Id = v.PostId AND ph.CreationDate>='2010-04-07 19:36:20'::timestamp AND p.ViewCount>=5960 AND p.CommentCount>=8 AND v.VoteTypeId=2 AND u.Views>=582 AND u.Views<=10102 AND u.UpVotes>=2488;

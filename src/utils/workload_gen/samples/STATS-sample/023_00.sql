@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM votes as v, badges as b, users as u WHERE u.Id = v.UserId AND v.UserId = b.UserId AND v.BountyAmount >= 273 AND v.BountyAmount <= 461 AND u.DownVotes = 2;

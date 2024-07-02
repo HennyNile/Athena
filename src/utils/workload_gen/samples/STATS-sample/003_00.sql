@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM comments as c, postHistory as ph WHERE c.UserId = ph.UserId AND ph.PostHistoryTypeId = 6 AND ph.CreationDate >= '2013-10-25 13:15:26'::timestamp;

@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM comments as c, votes as v, users as u WHERE u.Id = c.UserId AND u.Id = v.UserId AND c.CreationDate >= '2009-09-07 09:59:54'::timestamp AND c.CreationDate <= '2011-09-02 18:52:20'::timestamp AND v.BountyAmount <= 402 AND u.UpVotes = 693 AND u.CreationDate <= '2012-12-20 19:13:26'::timestamp;

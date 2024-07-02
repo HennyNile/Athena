@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM comments as c, posts as p, postHistory as ph, votes as v, badges as b, users as u WHERE u.Id = p.OwnerUserId AND p.Id = v.PostId AND p.Id = c.PostId AND u.Id = b.UserId AND p.Id = ph.PostId AND p.AnswerCount>=1 AND p.CommentCount>=1 AND b.Date<='2012-01-15 14:02:20'::timestamp AND u.Reputation>=19983 AND u.Reputation<=68786 AND u.DownVotes>=136;

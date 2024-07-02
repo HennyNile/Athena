@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM comments as c, posts as p, postLinks as pl, users as u WHERE p.Id = c.PostId AND p.Id = pl.RelatedPostId AND p.OwnerUserId = u.Id AND c.CreationDate >= '2011-05-16 14:03:05'::timestamp AND c.CreationDate <= '2013-11-11 11:52:45'::timestamp AND u.UpVotes >= 4702 AND u.CreationDate >= '2011-05-22 10:30:22'::timestamp;

@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM postHistory as ph, posts as p, users as u, badges as b WHERE b.UserId = u.Id AND p.OwnerUserId = u.Id AND ph.UserId = u.Id AND ph.PostHistoryTypeId=12 AND p.ViewCount>=1770 AND p.ViewCount<=31613 AND u.Reputation>=55713 AND u.Reputation<=84697 AND b.Date>='2012-01-01 14:24:09'::timestamp;

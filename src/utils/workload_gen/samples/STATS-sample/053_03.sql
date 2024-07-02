@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM comments as c, postLinks as pl, posts as p, users as u, badges as b WHERE p.Id = pl.RelatedPostId AND p.Id = c.PostId AND u.Id = b.UserId AND u.Id = p.OwnerUserId AND pl.LinkTypeId=1 AND pl.CreationDate>='2012-04-09 06:16:44'::timestamp AND p.Score=43 AND p.ViewCount>=5878 AND p.FavoriteCount>=31 AND u.CreationDate>='2010-12-12 07:35:51'::timestamp;

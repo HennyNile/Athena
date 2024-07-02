@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM votes as v, posts as p, users as u WHERE v.UserId = u.Id AND p.OwnerUserId = u.Id AND p.CommentCount>=20 AND u.CreationDate>='2011-11-13 16:22:41'::timestamp;

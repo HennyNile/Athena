@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM comments as c, votes as v, badges as b, users as u WHERE u.Id = c.UserId AND u.Id = v.UserId AND u.Id = b.UserId AND c.Score = 6 AND v.BountyAmount >= 108 AND v.CreationDate <= '2013-12-27 13:56:51'::timestamp AND u.DownVotes <= 214 AND u.CreationDate >= '2012-03-22 15:45:21'::timestamp AND u.CreationDate <= '2013-02-28 21:19:33'::timestamp;

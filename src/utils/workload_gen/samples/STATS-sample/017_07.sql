@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM posts as p, postLinks as pl, postHistory as ph WHERE p.Id = pl.PostId AND pl.PostId = ph.PostId AND p.CreationDate >= '2013-06-13 05:13:37'::timestamp AND ph.CreationDate >= '2013-05-27 10:35:16'::timestamp;

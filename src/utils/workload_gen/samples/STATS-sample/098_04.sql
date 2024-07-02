@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM comments as c, posts as p, votes as v, users as u WHERE u.Id = p.OwnerUserId AND u.Id = c.UserId AND u.Id = v.UserId AND c.Score=2 AND p.ViewCount>=15363 AND u.Reputation<=36578 AND u.UpVotes>=1091;

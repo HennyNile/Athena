@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM postHistory as ph, posts as p, users as u, badges as b WHERE b.UserId = u.Id AND p.OwnerUserId = u.Id AND ph.UserId = u.Id AND ph.CreationDate>='2011-12-16 11:51:37'::timestamp AND p.Score>=127 AND u.CreationDate>='2011-10-01 23:49:13'::timestamp AND u.CreationDate<='2014-05-22 10:05:58'::timestamp;

@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM comments as c, postHistory as ph WHERE c.UserId = ph.UserId AND c.Score = 21 AND ph.PostHistoryTypeId = 6;

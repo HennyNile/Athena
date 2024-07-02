@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM tags as t, posts as p, users as u, votes as v, badges as b WHERE p.Id = t.ExcerptPostId AND u.Id = v.UserId AND u.Id = b.UserId AND u.Id = p.OwnerUserId AND u.Views>=3040 AND u.Views<=15925 AND u.UpVotes>=2043 AND u.CreationDate<='2012-03-20 18:28:16'::timestamp AND v.BountyAmount>=119 AND v.BountyAmount<=417 AND b.Date<='2011-09-07 03:44:19'::timestamp;

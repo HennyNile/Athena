@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM votes as v, posts as p, users as u WHERE v.UserId = u.Id AND p.OwnerUserId = u.Id AND p.PostTypeId=5 AND p.CreationDate<='2012-02-19 19:43:19'::timestamp AND u.Views>=14175;

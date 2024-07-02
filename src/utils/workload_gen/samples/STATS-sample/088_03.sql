@@ -1,1 +1,0 @@
-SELECT COUNT(*) FROM postHistory as ph, posts as p, users as u WHERE p.OwnerUserId = u.Id AND ph.UserId = u.Id AND p.Score>=2 AND p.CommentCount>=13 AND p.CommentCount<=42 AND u.DownVotes=143 AND u.UpVotes>=2517 AND u.UpVotes<=9288;
