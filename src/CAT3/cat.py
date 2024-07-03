@@ -202,29 +202,56 @@ class Lero:
         times = [sample.plan.get('Execution Time', torch.inf) for sample in samples]
         times = torch.tensor(times, dtype=torch.float32, device=torch.device('cuda'))
         trees = prepare_trees(samples, lambda x: x.feature, lambda x: x.left, lambda x: x.right, True, torch.device('cuda'))
+        _, _, max_nodes = trees[0].shape
         expr_list: list[np.ndarray] = []
         indices_list: list[list[list[int]]] = []
+        cond_to_node: list[list[int]] = []
+        filter_to_node: list[list[int]] = []
         for sample in samples:
+            cond_indices: list[int] = [0]
+            filter_indices: list[int] = [0]
             def dfs(sample_node: LeroSample):
+                cond_index = 0
+                filter_index = 0
                 if sample_node.cond_expr is not None:
                     expr_list.append(sample_node.cond_expr.vecs)
                     indices_list.append(sample_node.cond_expr.indices)
+                    cond_index = len(expr_list)
                 if sample_node.filter_expr is not None:
                     expr_list.append(sample_node.filter_expr.vecs)
                     indices_list.append(sample_node.filter_expr.indices)
+                    filter_index = len(expr_list)
+                cond_indices.append(cond_index)
+                filter_indices.append(filter_index)
                 if sample_node.left is not None:
                     dfs(sample_node.left)
                 if sample_node.right is not None:
                     dfs(sample_node.right)
             dfs(sample)
+            cond_to_node.append(cond_indices)
+            filter_to_node.append(filter_indices)
         num_trees = len(expr_list)
         max_exprs = max([l.shape[0] for l in expr_list])
         exprs = np.zeros((num_trees, max_exprs, self.expr_dim), dtype=np.float32)
         for i, expr in enumerate(expr_list):
             num_expr, _ = expr.shape
             exprs[i, :num_expr] = expr
+        exprs = torch.tensor(exprs, device=torch.device('cuda'))
         indices = batch_indices(indices_list)
-        return trees, times, torch.tensor(exprs, device=torch.device('cuda')), [torch.tensor(l, device=torch.device('cuda')) for l in indices]
+        indices = [torch.tensor(l, device=torch.device('cuda')) for l in indices]
+        conds = []
+        filters = []
+        for c, f in zip(cond_to_node, filter_to_node):
+            conds.extend(c)
+            filters.extend(f)
+            paddings = [0] * (max_nodes - len(c))
+            conds.extend(paddings)
+            filters.extend(paddings)
+        conds = np.array(conds, dtype=np.int64)
+        filters = np.array(filters, dtype=np.int64)
+        conds = torch.tensor(conds, device=torch.device('cuda'))
+        filters = torch.tensor(filters, device=torch.device('cuda'))
+        return trees, times, exprs, indices, conds, filters
 
     def _norm_est_card(self, est_card: float) -> float:
         return (math.log(est_card + 1) - self.min_est_card) / (self.max_est_card - self.min_est_card)

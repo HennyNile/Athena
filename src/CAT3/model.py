@@ -26,9 +26,9 @@ class LeroNet(nn.Module):
         super(LeroNet, self).__init__()
         self.input_feature_dim = input_feature_dim
         self.expr_dim = expr_dim
-        self.expr_encoder = nn.Linear(expr_dim, 128)
+        self.expr_encoder = nn.Linear(expr_dim, 64)
         self.tree_conv = nn.Sequential(
-            LeroBlock(self.input_feature_dim, 256),
+            LeroBlock(self.input_feature_dim + 2 * 64, 256),
             LeroBlock(256, 128),
             LeroBlock(128, 64),
             DynamicPooling(),
