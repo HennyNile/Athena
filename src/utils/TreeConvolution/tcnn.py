@@ -24,7 +24,7 @@ class BinaryTreeConv(nn.Module):
         zero_vec = zero_vec.to(results.device)
         results = torch.cat((zero_vec, results), dim=2)
         return (results, orig_idxes)
-    
+
 class ChannelMixer(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
@@ -52,8 +52,25 @@ class TreeLayerNorm(nn.Module):
         std = torch.std(data, dim=(1, 2)).unsqueeze(1).unsqueeze(1)
         normd = (data - mean) / (std + 0.00001)
         return (normd, idxes)
-    
+
 class DynamicPooling(nn.Module):
     def forward(self, x):
         return torch.max(x[0], dim=2).values
-    
+
+class PreciseMaxPooling(nn.Module):
+    def forward(self, x, nodes):
+        # x    : (batch_size, dim,           max_num_nodes + 1)
+        # nodes: (batch_size, max_num_nodes, max_num_nodes + 1)
+        _, dim, _ = x.shape
+        top_nodes = nodes[:, 0, :]
+        top_nodes = top_nodes.unsqueeze(1).repeat(1, dim, 1)
+        x = x.masked_fill(~top_nodes, -torch.inf)
+        return torch.max(x, dim=2).values
+
+# class DynamicPoolingAll(nn.Module):
+#     def forward(self, x, subplan_indices):
+#         x = x[0]
+#         vecs = []
+#         for begin, end in subplan_indices:
+#             vecs.append(torch.max(x[:,:,begin:end], dim=2).values)
+#         return torch.stack(vecs)

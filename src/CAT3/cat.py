@@ -74,6 +74,7 @@ class LeroSample:
         self.cond_expr = cond_expr
         self.filter_expr = filter_expr
         self.plan = None
+        self.mask = None
         self.left = None
         self.right = None
 
@@ -202,12 +203,13 @@ class Lero:
         times = [sample.plan.get('Execution Time', torch.inf) for sample in samples]
         times = torch.tensor(times, dtype=torch.float32, device=torch.device('cuda'))
         trees = prepare_trees(samples, lambda x: x.feature, lambda x: x.left, lambda x: x.right, True, torch.device('cuda'))
-        _, _, max_nodes = trees[0].shape
+        batch_size, _, max_nodes = trees[0].shape
         expr_list: list[np.ndarray] = []
         indices_list: list[list[list[int]]] = []
         cond_to_node: list[list[int]] = []
         filter_to_node: list[list[int]] = []
-        for sample in samples:
+        nodes = np.zeros((batch_size, max_nodes - 1, max_nodes), dtype=np.bool_)
+        for i, sample in enumerate(samples):
             cond_indices: list[int] = [0]
             filter_indices: list[int] = [0]
             def dfs(sample_node: LeroSample):
@@ -230,6 +232,9 @@ class Lero:
             dfs(sample)
             cond_to_node.append(cond_indices)
             filter_to_node.append(filter_indices)
+            _, sample_num_node = sample.mask.shape
+            nodes[i, :sample_num_node - 1, :sample_num_node] = sample.mask
+            nodes[i, sample_num_node:] = True
         num_trees = len(expr_list)
         max_exprs = max([l.shape[0] for l in expr_list])
         exprs = np.zeros((num_trees, max_exprs, self.expr_dim), dtype=np.float32)
@@ -239,6 +244,7 @@ class Lero:
         exprs = torch.tensor(exprs, device=torch.device('cuda'))
         indices = batch_indices(indices_list)
         indices = [torch.tensor(l, device=torch.device('cuda')) for l in indices]
+        nodes = torch.tensor(nodes, device=torch.device('cuda'))
         conds = []
         filters = []
         for c, f in zip(cond_to_node, filter_to_node):
@@ -251,7 +257,7 @@ class Lero:
         filters = np.array(filters, dtype=np.int64)
         conds = torch.tensor(conds, device=torch.device('cuda'))
         filters = torch.tensor(filters, device=torch.device('cuda'))
-        return trees, times, exprs, indices, conds, filters
+        return trees, times, exprs, indices, conds, filters, nodes
 
     def _norm_est_card(self, est_card: float) -> float:
         return (math.log(est_card + 1) - self.min_est_card) / (self.max_est_card - self.min_est_card)
@@ -266,7 +272,10 @@ class Lero:
 
     def _transform_plan(self, plan: dict) -> LeroSample:
         plan_info, _ = get_alias_map(plan)
+        node_idx = 1
+        ranges = []
         def dfs(node: dict, parent: dict|None = None) -> tuple[LeroSample, list[str]]:
+            nonlocal node_idx
             cond_expr = None
             if 'Hash Cond' in node:
                 cond_expr = node['Hash Cond']
@@ -294,10 +303,17 @@ class Lero:
             children = []
             plan_relations = []
 
+            ranges.append([node_idx, 0])
+            r = ranges[-1]
+            node_idx += 1
             for plan in node.get('Plans', []):
                 child, subplan_relations = dfs(plan, node)
                 children.append(child)
                 plan_relations.extend(subplan_relations)
+            if len(children) == 1:
+                ranges.append([node_idx, node_idx + 1])
+                node_idx += 1
+            r[1] = node_idx
 
             if node['Node Type'] in SCAN_TYPES:
                 plan_relations.append(node['Relation Name'])
@@ -319,7 +335,12 @@ class Lero:
             return sample, plan_relations
 
         result, _ = dfs(plan['Plan'])
+        num_nodes = ranges[0][1]
+        mask = np.zeros((num_nodes - 1, num_nodes), dtype=np.bool_)
+        for i, (begin, end) in enumerate(ranges):
+            mask[i, begin:end] = True
         result.plan = plan
+        result.mask = mask
         return result
 
     def _transform_node(self, node: dict, relations: list[str]) -> np.ndarray:

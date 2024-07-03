@@ -3,7 +3,7 @@ import sys
 from torch import nn
 
 sys.path.append('.')
-from src.utils.TreeConvolution.tcnn import (BinaryTreeConv, DynamicPooling,
+from src.utils.TreeConvolution.tcnn import (BinaryTreeConv, PreciseMaxPooling,
                                   TreeActivation, TreeLayerNorm, ChannelMixer)
 
 class LeroBlock(nn.Module):
@@ -30,12 +30,16 @@ class LeroNet(nn.Module):
         self.tree_conv = nn.Sequential(
             LeroBlock(self.input_feature_dim + 2 * 64, 256),
             LeroBlock(256, 128),
-            LeroBlock(128, 64),
-            DynamicPooling(),
+            LeroBlock(128, 64)
+        )
+        self.pooling = PreciseMaxPooling()
+        self.estimator = nn.Sequential(
             nn.Linear(64, 32),
             nn.LeakyReLU(),
             nn.Linear(32, 1)
         )
 
-    def forward(self, trees):
-        return self.tree_conv(trees)
+    def forward(self, trees, nodes):
+        x, _ = self.tree_conv(trees)
+        x = self.pooling(x, nodes)
+        return self.estimator(x)
