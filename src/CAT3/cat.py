@@ -8,7 +8,7 @@ writer = SummaryWriter()
 import numpy as np
 
 sys.path.append('.')
-from src.utils.db_utils import DBInfo
+from src.utils.db_utils import DataType, DBInfo
 from src.utils.TreeConvolution.util import prepare_trees
 
 from model import LeroNet
@@ -51,6 +51,23 @@ def get_alias_map(sample) -> tuple[PlanInfo, int]:
     dfs(root)
     return PlanInfo(alias_map, relation_names), max_card
 
+def batch_indices(batch: list[list[list[int]]]):
+    max_len = max([len(l) for l in batch])
+    ret: list[np.ndarray] = []
+    for i in range(max_len):
+        batch_i = []
+        for l in batch:
+            if i < len(l):
+                batch_i.append(l[i])
+            else:
+                batch_i.append([1, 0])
+        max_num_indices = max([len(l) for l in batch_i])
+        for l in batch_i:
+            l.extend([0] * (max_num_indices - len(l)))
+        batch_i = np.array(batch_i, dtype=np.int64)
+        ret.append(batch_i)
+    return ret
+
 class LeroSample:
     def __init__(self, feature: np.ndarray, cond_expr: ExprTree|None, filter_expr: ExprTree|None):
         self.feature = feature
@@ -73,7 +90,7 @@ class Lero:
         self.max_width = 0.
         self.max_alias_idx = 0
         self.max_array_len = 1
-        self.model: torch.nn.Module = None
+        self.model: LeroNet = None
 
     def _fit_sample(self, sample: dict, plan_info: PlanInfo) -> None:
         root = sample['Plan']
@@ -141,7 +158,8 @@ class Lero:
         self.max_est_card = math.log(self.max_est_card + 1)
 
     def init_model(self) -> None:
-        self.left_table_offset   = 0
+        self.data_type_offset    = 0
+        self.left_table_offset   = self.data_type_offset    + len(DataType)
         self.left_column_offset  = self.left_table_offset   + len(self.db_info.table_map)
         self.op_offset           = self.left_column_offset  + len(self.db_info.column_map)
         self.right_table_offset  = self.op_offset           + (2 + len(OpType))
@@ -151,7 +169,7 @@ class Lero:
         self.null_offset         = self.array_offset        + 1
         self.expr_dim            = self.null_offset         + 1
 
-        self.model = LeroNet(self.input_feature_dim)
+        self.model = LeroNet(self.input_feature_dim, self.expr_dim)
 
     def transform(self, plans: list[dict]):
         samples = []
@@ -184,7 +202,29 @@ class Lero:
         times = [sample.plan.get('Execution Time', torch.inf) for sample in samples]
         times = torch.tensor(times, dtype=torch.float32, device=torch.device('cuda'))
         trees = prepare_trees(samples, lambda x: x.feature, lambda x: x.left, lambda x: x.right, True, torch.device('cuda'))
-        return trees, times
+        expr_list: list[np.ndarray] = []
+        indices_list: list[list[list[int]]] = []
+        for sample in samples:
+            def dfs(sample_node: LeroSample):
+                if sample_node.cond_expr is not None:
+                    expr_list.append(sample_node.cond_expr.vecs)
+                    indices_list.append(sample_node.cond_expr.indices)
+                if sample_node.filter_expr is not None:
+                    expr_list.append(sample_node.filter_expr.vecs)
+                    indices_list.append(sample_node.filter_expr.indices)
+                if sample_node.left is not None:
+                    dfs(sample_node.left)
+                if sample_node.right is not None:
+                    dfs(sample_node.right)
+            dfs(sample)
+        num_trees = len(expr_list)
+        max_exprs = max([l.shape[0] for l in expr_list])
+        exprs = np.zeros((num_trees, max_exprs, self.expr_dim), dtype=np.float32)
+        for i, expr in enumerate(expr_list):
+            num_expr, _ = expr.shape
+            exprs[i, :num_expr] = expr
+        indices = batch_indices(indices_list)
+        return trees, times, torch.tensor(exprs, device=torch.device('cuda')), [torch.tensor(l, device=torch.device('cuda')) for l in indices]
 
     def _norm_est_card(self, est_card: float) -> float:
         return (math.log(est_card + 1) - self.min_est_card) / (self.max_est_card - self.min_est_card)
@@ -268,8 +308,10 @@ class Lero:
         arr[self.rows_offset] = self._norm_est_card(node['Plan Rows'])
         return arr
 
-    def _featurize_atomic_expr(self, node: AtomicNode) -> torch.Tensor:
-        ret = torch.zeros(self.expr_dim, dtype=torch.float32)
+    def _featurize_atomic_expr(self, node: AtomicNode) -> np.ndarray:
+        ret = np.zeros(self.expr_dim, dtype=np.float32)
+        data_type = self.db_info.data_types[node.left.column]
+        ret[self.data_type_offset + data_type.value] = 1
         ret[self.left_table_offset + node.left.table] = 1
         ret[self.left_column_offset + node.left.column] = 1
         ret[self.op_offset + int(node.op.positive)] = 1
@@ -286,3 +328,4 @@ class Lero:
             ret[self.null_offset] = 1
         else:
             raise RuntimeError(f'Unknonw Entity: {node.right}')
+        return ret

@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from enum import Enum
+
 import psycopg2
 
+class DataType(Enum):
+    Integer = 0
+    Text    = 1
+
 class DBInfo:
-    def __init__(self, table_map: dict[str, int], column_map: dict[tuple[str, str], int], normalizer: dict[tuple[str, str], tuple[int, int]], data_types: dict[int, str]):
+    def __init__(self, table_map: dict[str, int], column_map: dict[tuple[str, str], int], normalizer: dict[tuple[str, str], tuple[int, int]], data_types: dict[int, DataType]):
         self.table_map = table_map
         self.column_map = column_map
         self.normalizer = normalizer
@@ -72,7 +78,12 @@ class DBConn:
             column_names = [column_name[0] for column_name in results]
             data_types = [data_type[1] for data_type in results]
             for column_name, data_type in zip(column_names, data_types):
-                datatype_map[len(column_map)] = data_type
+                if data_type == 'integer':
+                    datatype_map[len(column_map)] = DataType.Integer
+                elif data_type == 'character varying':
+                    datatype_map[len(column_map)] = DataType.Text
+                else:
+                    raise RuntimeError(f'Invalid data type: {data_type}')
                 column_map[(table_name, column_name)] = len(column_map)
                 if data_type == 'integer':
                     m, M = self.get_column_normalization(table_name, column_name)

@@ -22,9 +22,11 @@ class LeroBlock(nn.Module):
         return self.activation((x_tree + y_tree, y_indices))
 
 class LeroNet(nn.Module):
-    def __init__(self, input_feature_dim) -> None:
+    def __init__(self, input_feature_dim, expr_dim) -> None:
         super(LeroNet, self).__init__()
         self.input_feature_dim = input_feature_dim
+        self.expr_dim = expr_dim
+        self.expr_encoder = nn.Linear(expr_dim, 128)
         self.tree_conv = nn.Sequential(
             LeroBlock(self.input_feature_dim, 256),
             LeroBlock(256, 128),

@@ -35,12 +35,27 @@ class PlanDataset(Dataset):
     def __getitem__(self, idx):
         return self.samples[idx]
 
-def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epochs):
+def min_max_pooling(x: torch.Tensor, indices_batch: list[torch.Tensor]):
+    batch_size, _, dim = x.shape
+    neg_inf = torch.full((batch_size, 1, dim), -torch.inf, dtype=torch.float32)
+    pos_inf = torch.full((batch_size, 1, dim), torch.inf, dtype=torch.float32)
+    for i, indices in enumerate(indices_batch):
+        use_min = i % 2 == 0
+        default = pos_inf if use_min else neg_inf
+        pool_fn = torch.min if use_min else torch.max
+        x = torch.concat((default, x), dim=1)
+        vec_pairs = torch.gather(x, 1, indices[:, :, None].repeat(1, 1, dim)).view(batch_size, -1, 2, dim)
+        x = pool_fn(vec_pairs[:, :, 0], vec_pairs[:, :, 1])
+    return x
+
+def train(model: Lero, optimizer, dataloader, val_dataloader, test_dataloader, num_epochs):
     model.model.cuda()
     for epoch in range(num_epochs):
         model.model.train()
         losses = []
-        for trees, cost_label in tqdm(dataloader):
+        for trees, cost_label, exprs, indices in tqdm(dataloader):
+            exprs = model.model.expr_encoder(exprs)
+            exprs = min_max_pooling(exprs, indices)
             cost = model.model(trees)
             pred = cost.view(-1, 2)
             label = cost_label.view(-1, 2)
@@ -57,7 +72,9 @@ def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epo
         losses = []
         pred_costs = []
         min_costs = []
-        for trees, cost_label in tqdm(val_dataloader):
+        for trees, cost_label, exprs, indices in tqdm(val_dataloader):
+            exprs = model.model.expr_encoder(exprs)
+            exprs = min_max_pooling(exprs, indices)
             cost = model.model(trees)
             pred = cost.view(-1)
             argmin_pred = torch.argmax(pred)
@@ -76,7 +93,9 @@ def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epo
             pred_costs = []
             min_costs = []
             num_timeout = 0
-            for trees, cost_label in tqdm(test_dataloader):
+            for trees, cost_label, exprs, indices in tqdm(test_dataloader):
+                exprs = model.model.expr_encoder(exprs)
+                exprs = min_max_pooling(exprs, indices)
                 cost = model.model(trees)
                 pred = cost.view(-1)
                 argmin_pred = torch.argmax(pred)

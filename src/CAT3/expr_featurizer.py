@@ -3,15 +3,15 @@ from collections.abc import Callable
 from enum import Enum
 import sys
 
-import torch
+import numpy as np
 
 sys.path.append('.')
 from src.utils.tokenizer import TokenType, tokenizer
 from src.utils.db_utils import DBInfo
 
-class DataType(Enum):
-    Integer = 0
-    Text    = 1
+class LogicalType(Enum):
+    And = 0
+    Or  = 1
 
 class OpType(Enum):
     Precise = 0
@@ -124,7 +124,7 @@ class ExprTreeNode(metaclass=ABCMeta):
         pass
 
 class BoolOperatorNode(ExprTreeNode):
-    def __init__(self, op: str, *nodes):
+    def __init__(self, op: LogicalType, *nodes):
         self.op = op
         self.children_: list[ExprTreeNode] = list(nodes)
 
@@ -144,7 +144,11 @@ class BoolOperatorNode(ExprTreeNode):
         return True
 
     def __str__(self) -> str:
-        return self.op
+        match self.op:
+            case LogicalType.And:
+                return 'AND'
+            case LogicalType.Or:
+                return 'OR'
 
 class AtomicNode(ExprTreeNode):
     def __init__(self, left: Column, op: Operator, right: Entity):
@@ -162,20 +166,60 @@ class AtomicNode(ExprTreeNode):
 
     def __str__(self) -> str:
         return f'{self.left} {self.op} {self.right}'
-    
+
 class IndexTreeNode:
-    def __init__(self):
+    def __init__(self, t: LogicalType):
+        self.op = t
         self.children = []
+
+class IndexTree:
+    def __init__(self, root: IndexTreeNode|int):
+        self.root = root
+
+    def pool_once(self, op: LogicalType):
+        indices: list[int] = []
+        def dfs(node: IndexTreeNode, parent: IndexTreeNode|None = None, child_idx: int|None = None, begin: int = 1):
+            all_leaves = False
+            if node.op == op:
+                if len(node.children) != 2:
+                    raise RuntimeError("Invalid node")
+                if type(node.children[0]) == int and type(node.children[1]) == int:
+                    all_leaves = True
+                    indices.extend(node.children)
+                    if parent is not None:
+                        parent.children[child_idx] = begin
+                    else:
+                        self.root = begin
+                    begin += 1
+            if not all_leaves:
+                for i, child in enumerate(node.children):
+                    if type(child) == int:
+                        indices.extend([child, 0])
+                        node.children[i] = begin
+                        begin += 1
+                    else:
+                        begin = dfs(child, node, i, begin)
+            return begin
+        dfs(self.root)
+        return indices
+
+    def pool(self):
+        ret: list[list[int]] = []
+        while type(self.root) != int:
+            indices = self.pool_once(LogicalType.And if len(ret) % 2 == 0 else LogicalType.Or)
+            ret.append(indices)
+        return ret
 
 class ExprTree:
     def __init__(self, root):
         self.root = root
-        self.vecs = []
+        self.vecs: np.ndarray|None = None
+        self.indices: list[list[int]]|None = None
 
-    def index_tree(self, idx_begin: int):
+    def index_tree(self, idx_begin: int = 1):
         def dfs(node):
             if type(node) == BoolOperatorNode:
-                ret = IndexTreeNode()
+                ret = IndexTreeNode(node.op)
                 for child in node.children():
                     ret.children.append(dfs(child))
                 return ret
@@ -187,27 +231,31 @@ class ExprTree:
             else:
                 raise RuntimeError("Wrong node type")
         root = dfs(self.root)
-        return root, idx_begin
-    
-    def cache_features(self, featurize_node: Callable[[AtomicNode], torch.Tensor]) -> None:
+        return IndexTree(root), idx_begin
+
+    def cache_features(self, featurize_node: Callable[[AtomicNode], np.ndarray]) -> None:
+        vecs = []
         def dfs(node):
             if type(node) == BoolOperatorNode:
                 for child in node.children():
                     dfs(child)
             elif type(node) == AtomicNode:
-                self.vecs.append(featurize_node(node))
+                vecs.append(featurize_node(node))
             else:
                 raise RuntimeError("Wrong node type")
         dfs(self.root)
+        self.vecs = np.stack(vecs)
+        index_tree, _ = self.index_tree()
+        self.indices = index_tree.pool()
 
     def combine_disjunction(self):
         changed = True
         while changed:
             changed = False
-            def dfs(node: ExprTreeNode, parent: BoolOperatorNode|None = None):
+            def dfs(node: ExprTreeNode, parent: BoolOperatorNode|None = None, child_idx: int|None = None):
                 nonlocal changed
                 children = node.children()
-                if type(node) == BoolOperatorNode and node.op == 'OR' and len(node.children()) > 0:
+                if type(node) == BoolOperatorNode and node.op == LogicalType.Or and len(node.children()) > 0:
                     first = children[0]
                     if type(first) == AtomicNode and first.op.positive and type(first.right) == Array:
                         all_same = True
@@ -218,15 +266,13 @@ class ExprTree:
                         if all_same:
                             new_node = AtomicNode(first.left, first.op, Array(sum([child.right.size for child in children])))
                             if parent is not None:
-                                for i, child in enumerate(parent.children_):
-                                    if child is node:
-                                        parent.children_[i] = new_node
+                                parent.children_[child_idx] = new_node
                             else:
                                 self.root = new_node
                             changed = True
                             return
-                for child in children:
-                    dfs(child, node)
+                for i, child in enumerate(children):
+                    dfs(child, node, i)
             dfs(self.root)
 
     def __str__(self) -> str:
@@ -296,7 +342,7 @@ class ExprParser:
             if t == TokenType.IDENTIFIER and token in ['AND', 'OR']:
                 self.idx += 1
                 another = self.parse_term()
-                ret = BoolOperatorNode(token, ret, another)
+                ret = BoolOperatorNode(LogicalType.And if token == 'AND' else LogicalType.Or, ret, another)
             else:
                 break
         return ret
