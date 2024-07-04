@@ -53,7 +53,7 @@ def train(model: Lero, optimizer, dataloader, val_dataloader, test_dataloader, n
     for epoch in range(num_epochs):
         model.model.train()
         losses = []
-        for trees, cost_label, exprs, indices, conds, filters, nodes in tqdm(dataloader):
+        for trees, cost_label, cards_label, exprs, indices, conds, filters, nodes in tqdm(dataloader):
             exprs = model.model.expr_encoder(exprs)
             exprs = min_max_pooling(exprs, indices)
             batch_size, _, _ = trees[0].shape
@@ -62,10 +62,18 @@ def train(model: Lero, optimizer, dataloader, val_dataloader, test_dataloader, n
             conds = exprs[conds].view(batch_size, -1, expr_dim)
             filters = exprs[filters].view(batch_size, -1, expr_dim)
             trees = (torch.concat((trees[0], conds.permute(0, 2, 1), filters.permute(0, 2, 1)), dim=1), trees[1])
-            cost = model.model(trees, nodes)
+            cost, cards = model.model(trees, nodes)
+            cards_mask = nodes[:,0,1:] & cards_label.isfinite()
+            cards_pred_vec = cards[cards_mask]
+            cards_label_vec = cards_label[cards_mask]
+            weights = (cards_label_vec + model.log_min_true_card)
+            weights = weights / weights.sum()
+            weights = weights.clamp(min=1e-3)
+            cards_loss = torch.sum(weights * (cards_label_vec - cards_pred_vec) ** 2)
             pred = cost.view(-1, 2)
             label = cost_label.view(-1, 2)
             loss = ((label / label.sum(dim=1, keepdim=True)).nan_to_num(1.) * pred.softmax(dim=1)).sum()
+            loss = loss + 100 * cards_loss
             losses.append(loss.item())
             optimizer.zero_grad()
             loss.backward()
@@ -78,7 +86,7 @@ def train(model: Lero, optimizer, dataloader, val_dataloader, test_dataloader, n
         losses = []
         pred_costs = []
         min_costs = []
-        for trees, cost_label, exprs, indices, conds, filters, nodes in tqdm(val_dataloader):
+        for trees, cost_label, cards_label, exprs, indices, conds, filters, nodes in tqdm(val_dataloader):
             exprs = model.model.expr_encoder(exprs)
             exprs = min_max_pooling(exprs, indices)
             batch_size, _, _ = trees[0].shape
@@ -87,7 +95,14 @@ def train(model: Lero, optimizer, dataloader, val_dataloader, test_dataloader, n
             conds = exprs[conds].view(batch_size, -1, expr_dim)
             filters = exprs[filters].view(batch_size, -1, expr_dim)
             trees = (torch.concat((trees[0], conds.permute(0, 2, 1), filters.permute(0, 2, 1)), dim=1), trees[1])
-            cost = model.model(trees, nodes)
+            cost, _ = model.model(trees, nodes)
+            # cards_mask = nodes[:,0,1:].isfinite() & cards.isfinite()
+            # cards_pred_vec = cards[cards_mask]
+            # cards_label_vec = cards_label[cards_mask]
+            # weights = (cards_label_vec + model.log_min_true_card)
+            # weights = weights / weights.sum()
+            # weights = weights.clamp(min=1e-3)
+            # cards_loss = torch.sum(weights * (cards_label_vec - cards_pred_vec) ** 2)
             pred = cost.view(-1)
             argmin_pred = torch.argmax(pred)
             pred_cost = cost_label[argmin_pred]
@@ -105,7 +120,7 @@ def train(model: Lero, optimizer, dataloader, val_dataloader, test_dataloader, n
             pred_costs = []
             min_costs = []
             num_timeout = 0
-            for trees, cost_label, exprs, indices, conds, filters, nodes in tqdm(test_dataloader):
+            for trees, cost_label, cards_label, exprs, indices, conds, filters, nodes in tqdm(test_dataloader):
                 exprs = model.model.expr_encoder(exprs)
                 exprs = min_max_pooling(exprs, indices)
                 batch_size, _, _ = trees[0].shape
@@ -114,7 +129,14 @@ def train(model: Lero, optimizer, dataloader, val_dataloader, test_dataloader, n
                 conds = exprs[conds].view(batch_size, -1, expr_dim)
                 filters = exprs[filters].view(batch_size, -1, expr_dim)
                 trees = (torch.concat((trees[0], conds.permute(0, 2, 1), filters.permute(0, 2, 1)), dim=1), trees[1])
-                cost = model.model(trees, nodes)
+                cost, _ = model.model(trees, nodes)
+                # cards_mask = nodes[:,0,1:].isfinite() & cards.isfinite()
+                # cards_pred_vec = cards[cards_mask]
+                # cards_label_vec = cards_label[cards_mask]
+                # weights = (cards_label_vec + model.log_min_true_card)
+                # weights = weights / weights.sum()
+                # weights = weights.clamp(min=1e-3)
+                # cards_loss = torch.sum(weights * (cards_label_vec - cards_pred_vec) ** 2)
                 pred = cost.view(-1)
                 argmin_pred = torch.argmax(pred)
                 pred_cost = cost_label[argmin_pred]
@@ -195,6 +217,7 @@ if __name__ == '__main__':
     seed = args.seed
     random.seed(seed)
     np.random.seed(seed)
+    torch.set_printoptions(threshold=10000)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)

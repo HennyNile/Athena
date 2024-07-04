@@ -75,6 +75,7 @@ class LeroSample:
         self.filter_expr = filter_expr
         self.plan = None
         self.mask = None
+        self.cards = None
         self.left = None
         self.right = None
 
@@ -88,6 +89,8 @@ class Lero:
         self.rows_offset = self.width_offset + 1
         self.min_est_card = float('inf')
         self.max_est_card = 0.
+        self.min_true_card = float('inf')
+        self.max_true_card = 0.
         self.max_width = 0.
         self.max_alias_idx = 0
         self.max_array_len = 1
@@ -146,6 +149,11 @@ class Lero:
             self.min_est_card = min(self.min_est_card, est_card)
             self.max_est_card = max(self.max_est_card, est_card)
 
+            if 'Actual Rows' in node:
+                true_card = node['Actual Rows'] * node['Actual Loops']
+                self.min_true_card = min(self.min_true_card, true_card)
+                self.max_true_card = max(self.max_true_card, true_card)
+
             width = node['Plan Width']
             self.max_width = max(self.max_width, width)
 
@@ -159,6 +167,10 @@ class Lero:
         self.max_est_card = math.log(self.max_est_card + 1)
 
     def init_model(self) -> None:
+        self.log_min_true_card = math.log(self.min_true_card + 1)
+        self.log_max_true_card = math.log(self.max_true_card + 1)
+        self.log_true_card_diff = self.log_max_true_card - self.log_min_true_card
+
         self.data_type_offset    = 0
         self.left_table_offset   = self.data_type_offset    + len(DataType)
         self.left_column_offset  = self.left_table_offset   + len(self.db_info.table_map)
@@ -209,6 +221,7 @@ class Lero:
         cond_to_node: list[list[int]] = []
         filter_to_node: list[list[int]] = []
         nodes = np.zeros((batch_size, max_nodes - 1, max_nodes), dtype=np.bool_)
+        cards = np.zeros((batch_size, max_nodes - 1), dtype=np.float32)
         for i, sample in enumerate(samples):
             cond_indices: list[int] = [0]
             filter_indices: list[int] = [0]
@@ -234,7 +247,8 @@ class Lero:
             filter_to_node.append(filter_indices)
             _, sample_num_node = sample.mask.shape
             nodes[i, :sample_num_node - 1, :sample_num_node] = sample.mask
-            nodes[i, sample_num_node:] = True
+            nodes[i, sample_num_node - 1:] = True
+            cards[i, :sample_num_node - 1] = sample.cards
         num_trees = len(expr_list)
         max_exprs = max([l.shape[0] for l in expr_list])
         exprs = np.zeros((num_trees, max_exprs, self.expr_dim), dtype=np.float32)
@@ -245,6 +259,7 @@ class Lero:
         indices = batch_indices(indices_list)
         indices = [torch.tensor(l, device=torch.device('cuda')) for l in indices]
         nodes = torch.tensor(nodes, device=torch.device('cuda'))
+        cards = torch.tensor(cards, device=torch.device('cuda'))
         conds = []
         filters = []
         for c, f in zip(cond_to_node, filter_to_node):
@@ -257,7 +272,7 @@ class Lero:
         filters = np.array(filters, dtype=np.int64)
         conds = torch.tensor(conds, device=torch.device('cuda'))
         filters = torch.tensor(filters, device=torch.device('cuda'))
-        return trees, times, exprs, indices, conds, filters, nodes
+        return trees, times, cards, exprs, indices, conds, filters, nodes
 
     def _norm_est_card(self, est_card: float) -> float:
         return (math.log(est_card + 1) - self.min_est_card) / (self.max_est_card - self.min_est_card)
@@ -274,6 +289,7 @@ class Lero:
         plan_info, _ = get_alias_map(plan)
         node_idx = 1
         ranges = []
+        cards = []
         def dfs(node: dict, parent: dict|None = None) -> tuple[LeroSample, list[str]]:
             nonlocal node_idx
             cond_expr = None
@@ -303,6 +319,10 @@ class Lero:
             children = []
             plan_relations = []
 
+            if 'Actual Rows' in node:
+                cards.append((math.log(node['Actual Rows'] * node['Actual Loops'] + 1.) - self.log_min_true_card) / self.log_true_card_diff)
+            else:
+                cards.append(-np.inf)
             ranges.append([node_idx, 0])
             r = ranges[-1]
             node_idx += 1
@@ -311,6 +331,7 @@ class Lero:
                 children.append(child)
                 plan_relations.extend(subplan_relations)
             if len(children) == 1:
+                cards.append(-np.inf)
                 ranges.append([node_idx, node_idx + 1])
                 node_idx += 1
             r[1] = node_idx
@@ -341,6 +362,7 @@ class Lero:
             mask[i, begin:end] = True
         result.plan = plan
         result.mask = mask
+        result.cards = np.array(cards, dtype=np.float32)
         return result
 
     def _transform_node(self, node: dict, relations: list[str]) -> np.ndarray:

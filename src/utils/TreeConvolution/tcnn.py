@@ -34,8 +34,9 @@ class ChannelMixer(nn.Module):
 
     def forward(self, flat_data):
         trees, _ = flat_data
-        trees = self.weights(trees.transpose(1, 2)).transpose(1, 2)
-        return trees
+        trees = self.weights(trees[:,:,1:].transpose(1, 2)).transpose(1, 2)
+        batch_size, dim, _ = trees.shape
+        return torch.cat((torch.zeros(batch_size, dim, 1, dtype=torch.float32, device=trees.device), trees), dim=2)
 
 class TreeActivation(nn.Module):
     def __init__(self, activation):
@@ -67,10 +68,14 @@ class PreciseMaxPooling(nn.Module):
         x = x.masked_fill(~top_nodes, -torch.inf)
         return torch.max(x, dim=2).values
 
-# class DynamicPoolingAll(nn.Module):
-#     def forward(self, x, subplan_indices):
-#         x = x[0]
-#         vecs = []
-#         for begin, end in subplan_indices:
-#             vecs.append(torch.max(x[:,:,begin:end], dim=2).values)
-#         return torch.stack(vecs)
+class MaxPoolingAll(nn.Module):
+    def forward(self, x, nodes):
+        vecs = []
+        _, dim, _ = x.shape
+        _, num_max_nodes, _ = nodes.shape
+        for i in range(num_max_nodes):
+            nodes_i = nodes[:, i, :]
+            nodes_i = nodes_i.unsqueeze(1).repeat(1, dim, 1)
+            masked_x = x.masked_fill(~nodes_i, -torch.inf)
+            vecs.append(torch.max(masked_x, dim=2).values)
+        return torch.stack(vecs, dim=1)

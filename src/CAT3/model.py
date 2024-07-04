@@ -1,9 +1,10 @@
 import sys
 
+import torch
 from torch import nn
 
 sys.path.append('.')
-from src.utils.TreeConvolution.tcnn import (BinaryTreeConv, PreciseMaxPooling,
+from src.utils.TreeConvolution.tcnn import (BinaryTreeConv, MaxPoolingAll,
                                   TreeActivation, TreeLayerNorm, ChannelMixer)
 
 class LeroBlock(nn.Module):
@@ -32,14 +33,19 @@ class LeroNet(nn.Module):
             LeroBlock(256, 128),
             LeroBlock(128, 64)
         )
-        self.pooling = PreciseMaxPooling()
-        self.estimator = nn.Sequential(
-            nn.Linear(64, 32),
-            nn.LeakyReLU(),
-            nn.Linear(32, 1)
-        )
+        self.pooling = MaxPoolingAll()
+        self.card_estimator1 = nn.Linear(64, 32)
+        self.card_estimator2 = nn.Linear(32, 1)
+        self.cost_estimator1 = nn.Linear(96, 32)
+        self.cost_estimator2 = nn.Linear(32, 1)
+        self.activation = nn.LeakyReLU()
 
     def forward(self, trees, nodes):
         x, _ = self.tree_conv(trees)
         x = self.pooling(x, nodes)
-        return self.estimator(x)
+        cards_info = self.activation(self.card_estimator1(x))
+        cards = self.card_estimator2(cards_info)
+        plan_with_cards = torch.cat((x, cards_info), dim=2)
+        cost = self.activation(self.cost_estimator1(plan_with_cards))
+        cost = self.cost_estimator2(cost)[:, 0]
+        return cost.squeeze(), cards.squeeze()
