@@ -8,17 +8,20 @@ import psycopg2
 
 class DataType(Enum):
     Integer   = 0
-    Text      = 1
-    Timestamp = 2
+    Float     = 1
+    Text      = 2
+    Timestamp = 3
 
 class DBInfo:
-    def __init__(self, table_map: dict[str, int], column_map: dict[tuple[str, str], int], normalizer: dict[tuple[str, str], tuple[int, int]], data_types: dict[int, DataType], min_time = datetime|None, max_time = datetime|None):
+    def __init__(self, table_map: dict[str, int], column_map: dict[tuple[str, str], int], normalizer: dict[tuple[str, str], tuple[int, int]], data_types: dict[int, DataType], min_time = datetime|None, max_time = datetime|None, min_timestamp = datetime|None, max_timestamp = datetime|None):
         self.table_map = table_map
         self.column_map = column_map
         self.normalizer = normalizer
         self.data_types = data_types
         self.min_time = min_time
         self.max_time = max_time
+        self.min_timestamp = min_timestamp
+        self.max_timestamp = max_timestamp
         self.column_map_list = []
         self.column_id_to_normalizer = {}
         num_tables = len(table_map)
@@ -76,6 +79,8 @@ class DBConn:
         datatype_map = {}
         min_time = None
         max_time = None
+        min_timestamp = None
+        max_timestamp = None
         table_names = [table_name[0] for table_name in cur.fetchall()]
         for table_name in table_names:
             table_map[table_name] = len(table_map)
@@ -88,8 +93,16 @@ class DBConn:
                     datatype_map[len(column_map)] = DataType.Integer
                 elif data_type == 'smallint':
                     datatype_map[len(column_map)] = DataType.Integer
+                elif data_type == 'numeric':
+                    datatype_map[len(column_map)] = DataType.Float
+                elif data_type == 'character':
+                    datatype_map[len(column_map)] = DataType.Text
                 elif data_type == 'character varying':
                     datatype_map[len(column_map)] = DataType.Text
+                elif data_type == 'date':
+                    datatype_map[len(column_map)] = DataType.Timestamp
+                elif data_type == 'time without time zone':
+                    datatype_map[len(column_map)] = DataType.Timestamp
                 elif data_type == 'timestamp without time zone':
                     datatype_map[len(column_map)] = DataType.Timestamp
                 else:
@@ -101,11 +114,24 @@ class DBConn:
                 elif data_type == 'smallint':
                     m, M = self.get_column_normalization(table_name, column_name)
                     normalizer[(table_name, column_name)] = (m, M)
-                elif data_type == 'timestamp without time zone':
+                elif data_type == 'numeric':
+                    m, M = self.get_column_normalization(table_name, column_name)
+                    normalizer[(table_name, column_name)] = (m, M)
+                elif data_type == 'date':
+                    m, M = self.get_column_normalization(table_name, column_name)
+                    m = datetime.combine(m, datetime.min.time())
+                    M = datetime.combine(M, datetime.min.time())
+                    min_timestamp = min(min_timestamp, m) if min_timestamp is not None else m
+                    max_timestamp = max(max_timestamp, M) if max_timestamp is not None else M
+                elif data_type == 'time without time zone':
                     m, M = self.get_column_normalization(table_name, column_name)
                     min_time = min(min_time, m) if min_time is not None else m
                     max_time = max(max_time, M) if max_time is not None else M
-        return DBInfo(table_map, column_map, normalizer, datatype_map, min_time, max_time)
+                elif data_type == 'timestamp without time zone':
+                    m, M = self.get_column_normalization(table_name, column_name)
+                    min_timestamp = min(min_timestamp, m) if min_timestamp is not None else m
+                    max_timestamp = max(max_timestamp, M) if max_timestamp is not None else M
+        return DBInfo(table_map, column_map, normalizer, datatype_map, min_time, max_time, min_timestamp, max_timestamp)
 
     def get_column_normalization(self, table, column):
         cur = self.conn.cursor()
