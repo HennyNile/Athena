@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 import math
 import sys
@@ -25,6 +26,7 @@ class KeyType(Enum):
     InnerUnique  = 9
     CacheKey     = 10
     SortKey      = 11
+    PlanRows     = 12
 
 class NodeType(Enum):
     Gather          = 0
@@ -224,6 +226,20 @@ class NumberToken:
     def __str__(self) -> str:
         return f'Number{{{self.number}}}'
 
+class TimestampToken:
+    def __init__(self, s: str) -> None:
+        self.timestamp = datetime.strptime(s, '%Y-%m-%d %H:%M:%S')
+    
+    def __str__(self) -> str:
+        return f'Timestamp{{{self.timestamp}}}'
+
+class CardinalityToken:
+    def __init__(self, card: float) -> None:
+        self.card = card
+
+    def __str__(self) -> str:
+        return f'Cardinality{{{self.card}}}'
+
 def word_splitter(word):
     words = plan_expr_parser.string_splitter(word)
     ret = []
@@ -261,10 +277,14 @@ class PlanInfo:
         self.rel_names = rel_names
 
 def tokenizer(expr: str, plan_info: PlanInfo, db_info: DBInfo, node: dict, node_parent: dict|None) -> tuple[list, int]:
+    skip = 0
     max_alias_idx = 0
     tokens = plan_expr_parser.tokenizer(expr)
     ret = []
     for idx, (t, token) in enumerate(tokens):
+        if skip > 0:
+            skip -= 1
+            continue
         match t:
             case TokenType.LEFT_PARAN:
                 ret.append(SyntaxToken(SyntaxType.LEFT_PARAN))
@@ -301,9 +321,29 @@ def tokenizer(expr: str, plan_info: PlanInfo, db_info: DBInfo, node: dict, node_
             case TokenType.NOT_LIKE:
                 ret.append(SyntaxToken(SyntaxType.OP_NOT_LIKE))
             case TokenType.SINGLE_QUOTE:
-                ret.append(SyntaxToken(SyntaxType.SINGLE_QUOTE))
-                ret.extend(word_splitter(token[1:-1]))
-                ret.append(SyntaxToken(SyntaxType.SINGLE_QUOTE))
+                if idx + 2 < len(tokens) and tokens[idx + 1][0] == TokenType.ATTRIBUTE and tokens[idx + 2][0] == TokenType.IDENTIFIER:
+                    if tokens[idx + 2][1] == "integer":
+                        if len(ret) >= 2 and type(ret[-2]) == ColumnToken:
+                            m, M = db_info.get_normalizer(ret[-2].column_id)
+                            value = float(token[1:-1])
+                            value = (value - m) / (M - m)
+                            ret.append(NumberToken(value))
+                        else:
+                            raise RuntimeError("Number should be a column value")
+                        skip = 2
+                    elif tokens[idx + 2][1] == "timestamp":
+                        ret.append(TimestampToken(token[1:-1]))
+                        skip = 5
+                    elif tokens[idx + 2][1] == "text":
+                        ret.append(SyntaxToken(SyntaxType.SINGLE_QUOTE))
+                        ret.extend(word_splitter(token[1:-1]))
+                        ret.append(SyntaxToken(SyntaxType.SINGLE_QUOTE))
+                    else:
+                        raise RuntimeError(f"Unknown attribute: {tokens[idx + 2][1]}")
+                else:
+                    ret.append(SyntaxToken(SyntaxType.SINGLE_QUOTE))
+                    ret.extend(word_splitter(token[1:-1]))
+                    ret.append(SyntaxToken(SyntaxType.SINGLE_QUOTE))
             case TokenType.DOUBLE_QUOTE:
                 ret.append(SyntaxToken(SyntaxType.DOUBLE_QUOTE))
                 ret.extend(word_splitter(token[1:-1]))
@@ -483,7 +523,8 @@ class Cat:
         self.inner_unique_offset = self.column_offset       + len(self.db_info.column_map)
         self.word_offset         = self.inner_unique_offset + 2
         self.syntax_offset       = self.word_offset         + len(self.word_table)
-        self.feature_dim         = self.syntax_offset       + len(SyntaxType)
+        self.card_offset         = self.syntax_offset       + len(SyntaxType)
+        self.feature_dim         = self.card_offset         + 1
         print(f'cls_offset: {self.cls_offset}')
         print(f'number_offset: {self.number_offset}')
         print(f'key_offset: {self.key_offset}')
@@ -494,6 +535,7 @@ class Cat:
         print(f'inner_unique_offset: {self.inner_unique_offset}')
         print(f'word_offset: {self.word_offset}')
         print(f'syntax_offset: {self.syntax_offset}')
+        print(f'card_offset: {self.card_offset}')
         print(f'feature_dim: {self.feature_dim}')
 
     def fit_train(self, dataset: list[list[dict]]) -> None:
@@ -550,6 +592,10 @@ class Cat:
                         x[token_idx, self.syntax_offset + syntax.value] = 1.
                     case NumberToken(number=number):
                         x[token_idx, self.number_offset] = number
+                    case TimestampToken(timestamp=timestamp):
+                        x[token_idx, self.number_offset] = self._norm_timestamp(timestamp)
+                    case CardinalityToken(card=card):
+                        x[token_idx, self.card_offset] = card
                     case _:
                         print(token)
                         raise NotImplementedError
@@ -627,7 +673,8 @@ class Cat:
         self.inner_unique_offset = self.column_offset       + len(self.db_info.column_map)
         self.word_offset         = self.inner_unique_offset + 2
         self.syntax_offset       = self.word_offset         + len(self.word_table)
-        self.feature_dim         = self.syntax_offset       + len(SyntaxType)
+        self.card_offset         = self.syntax_offset       + len(SyntaxType)
+        self.feature_dim         = self.card_offset         + 1
         self.init_model()
         self.model.load_state_dict(model_state['state_dict'])
 
@@ -659,6 +706,11 @@ class Cat:
                 if type(token) == WordToken:
                     if token.word not in self.word_table:
                         self.word_table[token.word] = len(self.word_table)
+
+    def _norm_timestamp(self, dt: datetime) -> float:
+        min_t = self.db_info.min_time.timestamp()
+        max_t = self.db_info.max_time.timestamp()
+        return (dt.timestamp() - min_t) / (max_t - min_t)
 
     def _featurize_plan(self, plan: dict, weight: float = 1.) -> Sample:
         plan_info, _ = get_alias_map(plan)
@@ -761,6 +813,9 @@ class Cat:
                     tokens.extend(tokenizer(node['Index Cond'], plan_info, self.db_info, node, parent)[0])
                 case _:
                     raise NotImplementedError
+            tokens.append(KeyToken(KeyType.PlanRows))
+            normalized_rows = math.log(node['Plan Rows'] + 1) / math.log(self.max_card + 1)
+            tokens.append(CardinalityToken(normalized_rows))
             token_end = len(tokens)
             node_card = node['Actual Rows'] * node['Actual Loops'] if 'Execution Time' in plan else -1.
             nodes.append(Node(token_begin, token_end, depth, node_begin, 0, leaf_begin, 0, node_card))

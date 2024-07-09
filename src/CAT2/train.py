@@ -30,9 +30,8 @@ class PlanDataset(Dataset):
         def get_num_finished(query: list[dict]):
             return sum([1 if 'Execution Time' in plan else 0 for plan in query])
         plans = [plan for query in dataset for plan in query]
-        num_finished = [get_num_finished(query) for query in dataset for _ in query]
+        num_finished = [max(1, get_num_finished(query)) for query in dataset for _ in query]
         self.samples = model.transform(plans, num_finished)
-        self.inputs = [model.transform_sample(sample) for sample in self.samples]
         self.model = model
         self.num_samples = len(self.samples)
         self.tmp_dir = tmp_dir
@@ -46,6 +45,8 @@ class PlanDataset(Dataset):
             for idx, sample in enumerate(tqdm(self.samples)):
                 input = model.transform_sample(sample)
                 input.save(os.path.join(tmp_dir, f'{idx}.pt'))
+        else:
+            self.inputs = [model.transform_sample(sample) for sample in self.samples]
 
     def __len__(self):
         return self.num_samples
@@ -57,7 +58,7 @@ class PlanDataset(Dataset):
         else:
             return Input.load(os.path.join(self.tmp_dir, f'{idx}.pt'))
 
-def train(model, optimizer, dataloader, val_dataloader, num_epochs, lr_scheduler=None):
+def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epochs, lr_scheduler=None):
     model.model.cuda()
     for epoch in range(num_epochs):
         model.model.train()
@@ -78,9 +79,12 @@ def train(model, optimizer, dataloader, val_dataloader, num_epochs, lr_scheduler
             cards_losses.append(cards_loss.item())
             pred = cost.view(-1, 2)
             label = input.cost.view(-1, 2)
+            # pred  = pred[:,0] - pred[:,1]
+            # label = (label[:,0] > label[:,1]).float()
+            # cost_loss = F.binary_cross_entropy_with_logits(pred, label)
             cost_loss = ((label / label.sum(dim=1, keepdim=True)).nan_to_num(1.) * pred.softmax(dim=1)).sum()
             cost_losses.append(cost_loss.item())
-            loss = 100 * cards_loss + cost_loss
+            loss = 1000 * cards_loss + cost_loss
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -115,29 +119,63 @@ def train(model, optimizer, dataloader, val_dataloader, num_epochs, lr_scheduler
             pred = cost.view(-1)
             preds.append(pred.detach().cpu().numpy())
             labels.append(input.cost.detach().cpu().numpy())
-        cards_loss = sum(cards_losses) / len(cards_losses)
-        qerrors = np.concatenate(qerrors)
-        p50 = np.percentile(qerrors, 50)
-        p90 = np.percentile(qerrors, 90)
-        p95 = np.percentile(qerrors, 95)
-        p99 = np.percentile(qerrors, 99)
-        preds = np.concatenate(preds)
-        labels = np.concatenate(labels)
-        preds = val_dataloader.batch_sampler.group(preds)
-        labels = val_dataloader.batch_sampler.group(labels)
-        argmin_pred = [np.argmax(pred).item() for pred in preds]
-        pred_costs = [label[min_pred].item() for label, min_pred in zip(labels, argmin_pred)]
-        min_costs = [np.min(label).item() for label in labels]
-        total_pred_cost = sum(pred_costs)
-        total_min_cost = sum(min_costs)
-        ability = total_min_cost / total_pred_cost
-        writer.add_scalar('val/cards_loss', cards_loss, epoch)
-        writer.add_scalar('val/p50', np.log10(p50), epoch)
-        writer.add_scalar('val/p90', np.log10(p90), epoch)
-        writer.add_scalar('val/p95', np.log10(p95), epoch)
-        writer.add_scalar('val/p99', np.log10(p99), epoch)
-        writer.add_scalar('val/ability', ability, epoch)
-        print(f'Validation cards_loss: {cards_loss}, p50: {p50}, p90: {p90}, p95: {p95}, p99: {p99}, ability: {ability * 100}%', flush=True)
+        if len(cards_losses) != 0:
+            cards_loss = sum(cards_losses) / len(cards_losses)
+            qerrors = np.concatenate(qerrors)
+            p50 = np.percentile(qerrors, 50)
+            p90 = np.percentile(qerrors, 90)
+            p95 = np.percentile(qerrors, 95)
+            p99 = np.percentile(qerrors, 99)
+            preds = np.concatenate(preds)
+            labels = np.concatenate(labels)
+            preds = val_dataloader.batch_sampler.group(preds)
+            labels = val_dataloader.batch_sampler.group(labels)
+            argmin_pred = [np.argmax(pred).item() for pred in preds]
+            pred_costs = [label[min_pred].item() for label, min_pred in zip(labels, argmin_pred)]
+            min_costs = [np.min(label).item() for label in labels]
+            total_pred_cost = sum(pred_costs)
+            total_min_cost = sum(min_costs)
+            ability = total_min_cost / total_pred_cost
+            writer.add_scalar('val/cards_loss', cards_loss, epoch)
+            writer.add_scalar('val/p50', np.log10(p50), epoch)
+            writer.add_scalar('val/p90', np.log10(p90), epoch)
+            writer.add_scalar('val/p95', np.log10(p95), epoch)
+            writer.add_scalar('val/p99', np.log10(p99), epoch)
+            writer.add_scalar('val/ability', ability, epoch)
+            print(f'Validation cards_loss: {cards_loss}, p50: {p50}, p90: {p90}, p95: {p95}, p99: {p99}, ability: {ability * 100}%', flush=True)
+
+        if test_dataloader is not None:
+            preds = []
+            labels = []
+            for input in tqdm(test_dataloader):
+                input = input.cuda()
+                cost = model.model.cost_output(input.x, input.pos, input.mask, input.node_pos, input.node_mask, input.output_idx)
+                pred = cost.view(-1)
+                preds.append(pred.detach().cpu().numpy())
+                labels.append(input.cost.detach().cpu().numpy())
+            preds = np.concatenate(preds)
+            labels = np.concatenate(labels)
+            preds = test_dataloader.batch_sampler.group(preds)
+            labels = test_dataloader.batch_sampler.group(labels)
+            argmin_pred = [np.argmax(pred).item() for pred in preds]
+            pred_costs = [label[min_pred].item() for label, min_pred in zip(labels, argmin_pred)]
+            default_costs = [label[0].item() for label in labels]
+            def get_timeout_cost(default):
+                timeout = 4 * default
+                if timeout >= 240000:
+                    return max(default, 240000)
+                elif timeout <= 5000:
+                    return 5000
+                else:
+                    return timeout
+            pred_costs = [cost if cost != float('inf') else get_timeout_cost(default) for cost, default in zip(pred_costs, default_costs)]
+            timeouts = [get_timeout_cost(default) for cost, default in zip(pred_costs, default_costs) if cost == float('inf')]
+            min_costs = [np.min(label).item() for label in labels]
+            total_pred_cost = sum(pred_costs)
+            total_min_cost = sum(min_costs)
+            ability = total_min_cost / total_pred_cost
+            writer.add_scalar('test/ability', ability, epoch)
+            print(f'Test ability: {ability * 100}%, pred time: {total_pred_cost / 1000}, min time: {total_min_cost / 1000}, timeout: {timeouts}', flush=True)
 
 def main(args: argparse.Namespace):
     dataset_regex = re.compile(r'([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)')
@@ -166,21 +204,28 @@ def main(args: argparse.Namespace):
     model.init_model()
 
     train_dataset = PlanDataset(train_queries, model)
-    itemwise_sampler = ItemwiseSampler(train_queries, args.batch_size)
     pairwise_sampler = PairwiseSampler(train_queries, args.batch_size // 2)
     val_dataset = PlanDataset(val_queries, model)
     val_sampler = BatchedQuerySampler(val_queries, args.batch_size)
 
     dataloader = DataLoader(train_dataset, batch_sampler=pairwise_sampler, collate_fn=model.batch_transformed_samples, num_workers=8)
     val_dataloader = DataLoader(val_dataset, batch_sampler=val_sampler, collate_fn=model.batch_transformed_samples, num_workers=8)
+    if args.test != '':
+        _, test_queries = read_dataset(os.path.join('datasets', args.test))
+        test_dataset = PlanDataset(test_queries, model, 'tmp_test')
+        test_sampler = BatchedQuerySampler(test_queries, args.batch_size)
+        test_dataloader = DataLoader(test_dataset, batch_sampler=test_sampler, collate_fn=model.batch_transformed_samples, num_workers=8)
+    else:
+        test_dataloader = None
     optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-4)
-    train(model, optimizer, dataloader, val_dataloader, args.epoch)
+    train(model, optimizer, dataloader, val_dataloader, test_dataloader, args.epoch)
     os.makedirs('models', exist_ok=True)
     model.save(f'models/cat2_on_{database}_{workload}_{method}_{args.valset.split(".")[0]}.pth')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='imdb/JOB/Bao')
+    parser.add_argument('--test', type=str, default='')
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--epoch', type=int, default=50)
     parser.add_argument('--batch_size', type=int, default=32)
