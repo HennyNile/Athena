@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
 from enum import Enum
 
 import psycopg2
 
 class DataType(Enum):
-    Integer = 0
-    Text    = 1
+    Integer   = 0
+    Text      = 1
+    Timestamp = 2
 
 class DBInfo:
-    def __init__(self, table_map: dict[str, int], column_map: dict[tuple[str, str], int], normalizer: dict[tuple[str, str], tuple[int, int]], data_types: dict[int, DataType]):
+    def __init__(self, table_map: dict[str, int], column_map: dict[tuple[str, str], int], normalizer: dict[tuple[str, str], tuple[int, int]], data_types: dict[int, DataType], min_time = datetime|None, max_time = datetime|None):
         self.table_map = table_map
         self.column_map = column_map
         self.normalizer = normalizer
         self.data_types = data_types
+        self.min_time = min_time
+        self.max_time = max_time
         self.column_map_list = []
         self.column_id_to_normalizer = {}
         num_tables = len(table_map)
@@ -70,6 +74,8 @@ class DBConn:
         column_map = {}
         normalizer = {}
         datatype_map = {}
+        min_time = None
+        max_time = None
         table_names = [table_name[0] for table_name in cur.fetchall()]
         for table_name in table_names:
             table_map[table_name] = len(table_map)
@@ -80,15 +86,26 @@ class DBConn:
             for column_name, data_type in zip(column_names, data_types):
                 if data_type == 'integer':
                     datatype_map[len(column_map)] = DataType.Integer
+                elif data_type == 'smallint':
+                    datatype_map[len(column_map)] = DataType.Integer
                 elif data_type == 'character varying':
                     datatype_map[len(column_map)] = DataType.Text
+                elif data_type == 'timestamp without time zone':
+                    datatype_map[len(column_map)] = DataType.Timestamp
                 else:
                     raise RuntimeError(f'Invalid data type: {data_type}')
                 column_map[(table_name, column_name)] = len(column_map)
                 if data_type == 'integer':
                     m, M = self.get_column_normalization(table_name, column_name)
                     normalizer[(table_name, column_name)] = (m, M)
-        return DBInfo(table_map, column_map, normalizer, datatype_map)
+                elif data_type == 'smallint':
+                    m, M = self.get_column_normalization(table_name, column_name)
+                    normalizer[(table_name, column_name)] = (m, M)
+                elif data_type == 'timestamp without time zone':
+                    m, M = self.get_column_normalization(table_name, column_name)
+                    min_time = min(min_time, m) if min_time is not None else m
+                    max_time = max(max_time, M) if max_time is not None else M
+        return DBInfo(table_map, column_map, normalizer, datatype_map, min_time, max_time)
 
     def get_column_normalization(self, table, column):
         cur = self.conn.cursor()
