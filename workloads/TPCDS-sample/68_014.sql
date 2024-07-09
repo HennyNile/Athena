@@ -10,9 +10,9 @@ select  count(*)
         and store_sales.ss_hdemo_sk = household_demographics.hd_demo_sk
         and store_sales.ss_addr_sk = customer_address.ca_address_sk
         and date_dim.d_dom between 1 and 2 
-        and (household_demographics.hd_dep_count = 7 or
-             household_demographics.hd_vehicle_count= 3)
+        and (household_demographics.hd_dep_count = 9 or
+             household_demographics.hd_vehicle_count= 2)
         and date_dim.d_year in (2000,2000+1,2000+2)
-        and store.s_city in ('Midway','Pleasant Hill');
+        and store.s_city in ('Pleasant Hill','Five Points');
 
 

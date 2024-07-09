@@ -7,8 +7,8 @@ select  count(*)
        cs_promo_sk = p_promo_sk and
        cd_gender = 'F' and 
        cd_marital_status = 'W' and
-       cd_education_status = 'Secondary' and
+       cd_education_status = 'Primary' and
        (p_channel_email = 'N' or p_channel_event = 'N') and
-       d_year = 2001;
+       d_year = 2000;
 
 

@@ -10,9 +10,9 @@ select  count(*)
        cd1.cd_education_status = '4 yr Degree' and
        c_current_cdemo_sk = cd2.cd_demo_sk and
        c_current_addr_sk = ca_address_sk and
-       c_birth_month in (1,11,9,8,6,3) and
+       c_birth_month in (6,10,5,11,7,9) and
        d_year = 2001 and
-       ca_state in ('TN','FL','SD'
-                   ,'IA','WV','IN','GA');
+       ca_state in ('OH','ID','VA'
+                   ,'NY','IN','MS','TX');
 
 

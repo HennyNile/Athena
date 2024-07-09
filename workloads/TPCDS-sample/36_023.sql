@@ -6,7 +6,7 @@ select  count(*)
    ,item
    ,store
  where
-    d1.d_year = 2001 
+    d1.d_year = 1998 
  and d1.d_date_sk = ss_sold_date_sk
  and i_item_sk  = ss_item_sk 
  and s_store_sk  = ss_store_sk

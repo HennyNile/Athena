@@ -6,10 +6,10 @@ select  count(*)
      ,household_demographics
      ,income_band
      ,store_returns
- where ca_city	        =  'Woodland'
+ where ca_city	        =  'Five Points'
    and c_current_addr_sk = ca_address_sk
-   and ib_lower_bound   >=  2321
-   and ib_upper_bound   <=  2321 + 50000
+   and ib_lower_bound   >=  41302
+   and ib_upper_bound   <=  41302 + 50000
    and ib_income_band_sk = hd_income_band_sk
    and cd_demo_sk = c_current_cdemo_sk
    and hd_demo_sk = c_current_hdemo_sk

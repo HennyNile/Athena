@@ -4,9 +4,9 @@ select  count(*)
      ,item 
      ,date_dim
  where cs_item_sk = i_item_sk 
-   and i_category in ('Books', 'Men', 'Shoes')
+   and i_category in ('Men', 'Music', 'Electronics')
    and cs_sold_date_sk = d_date_sk
- and d_date between cast('2001-01-11' as date) 
- 				and (cast('2001-01-11' as date) + 30 days);
+ and d_date between cast('2001-01-17' as date) 
+ 				and (cast('2001-01-17' as date) + interval '30 day');
 
 

@@ -6,9 +6,9 @@ from
     	,date_dim
 where 
 	ss_item_sk = i_item_sk 
-  	and i_category in ('Electronics', 'Jewelry', 'Sports')
+  	and i_category in ('Women', 'Children', 'Men')
   	and ss_sold_date_sk = d_date_sk
-	and d_date between cast('2000-05-06' as date) 
-				and (cast('2000-05-06' as date) + 30 days);
+	and d_date between cast('1998-02-17' as date) 
+				and (cast('1998-02-17' as date) + interval '30 day');
 
 

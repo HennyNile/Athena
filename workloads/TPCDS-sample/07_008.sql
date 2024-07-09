@@ -7,7 +7,7 @@ select  count(*)
        ss_promo_sk = p_promo_sk and
        cd_gender = 'M' and 
        cd_marital_status = 'M' and
-       cd_education_status = '4 yr Degree' and
+       cd_education_status = 'College' and
        (p_channel_email = 'N' or p_channel_event = 'N') and
        d_year = 1999;
 

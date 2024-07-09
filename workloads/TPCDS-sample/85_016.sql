@@ -13,7 +13,7 @@ select  count(*)
    and
    (
     (
-     cd1.cd_marital_status = 'U'
+     cd1.cd_marital_status = 'S'
      and
      cd1.cd_marital_status = cd2.cd_marital_status
      and
@@ -25,11 +25,11 @@ select  count(*)
     )
    or
     (
-     cd1.cd_marital_status = 'S'
+     cd1.cd_marital_status = 'D'
      and
      cd1.cd_marital_status = cd2.cd_marital_status
      and
-     cd1.cd_education_status = 'Secondary' 
+     cd1.cd_education_status = 'Primary' 
      and
      cd1.cd_education_status = cd2.cd_education_status
      and
@@ -37,11 +37,11 @@ select  count(*)
     )
    or
     (
-     cd1.cd_marital_status = 'W'
+     cd1.cd_marital_status = 'U'
      and
      cd1.cd_marital_status = cd2.cd_marital_status
      and
-     cd1.cd_education_status = 'Unknown'
+     cd1.cd_education_status = '4 yr Degree'
      and
      cd1.cd_education_status = cd2.cd_education_status
      and
@@ -53,21 +53,21 @@ select  count(*)
     (
      ca_country = 'United States'
      and
-     ca_state in ('MN', 'IA', 'OH')
+     ca_state in ('AL', 'MS', 'NE')
      and ws_net_profit between 100 and 200  
     )
     or
     (
      ca_country = 'United States'
      and
-     ca_state in ('AR', 'MS', 'WV')
+     ca_state in ('NJ', 'TX', 'ID')
      and ws_net_profit between 150 and 300  
     )
     or
     (
      ca_country = 'United States'
      and
-     ca_state in ('IN', 'VA', 'WI')
+     ca_state in ('KS', 'PA', 'WA')
      and ws_net_profit between 50 and 250  
     )
    );

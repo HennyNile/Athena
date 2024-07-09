@@ -13,6 +13,6 @@ select  count(*)
         and (household_demographics.hd_dep_count = 6 or
              household_demographics.hd_vehicle_count= 4)
         and date_dim.d_year in (2000,2000+1,2000+2)
-        and store.s_city in ('Riverside','Fairview');
+        and store.s_city in ('Riverside','Five Points');
 
 

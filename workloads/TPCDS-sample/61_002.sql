@@ -12,7 +12,7 @@ select count(*)
    and   ca_address_sk = c_current_addr_sk
    and   ss_item_sk = i_item_sk
    and   ca_gmt_offset = -7
-   and   i_category = 'Jewelry'
+   and   i_category = 'Books'
    and   s_gmt_offset = -7
    and   d_year = 2000
    and   d_moy  = 11;

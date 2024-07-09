@@ -6,13 +6,13 @@ select  count(*)
        cs_item_sk = i_item_sk and
        cs_bill_cdemo_sk = cd1.cd_demo_sk and
        cs_bill_customer_sk = c_customer_sk and
-       cd1.cd_gender = 'M' and 
-       cd1.cd_education_status = 'Unknown' and
+       cd1.cd_gender = 'F' and 
+       cd1.cd_education_status = 'Advanced Degree' and
        c_current_cdemo_sk = cd2.cd_demo_sk and
        c_current_addr_sk = ca_address_sk and
-       c_birth_month in (6,11,5,8,7,9) and
+       c_birth_month in (7,4,6,8,2,10) and
        d_year = 2002 and
-       ca_state in ('VA','OH','IN'
-                   ,'CA','MO','FL','NY');
+       ca_state in ('OH','ME','LA'
+                   ,'NV','NE','VA','TN');
 
 

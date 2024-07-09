@@ -14,7 +14,7 @@ select count(*)
    and   ca_gmt_offset = -7
    and   i_category = 'Books'
    and   s_gmt_offset = -7
-   and   d_year = 2002
-   and   d_moy  = 11;
+   and   d_year = 2001
+   and   d_moy  = 12;
 
 

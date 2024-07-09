@@ -10,7 +10,7 @@ select  count(*)
  and d1.d_date_sk = ss_sold_date_sk
  and i_item_sk  = ss_item_sk 
  and s_store_sk  = ss_store_sk
- and s_state in ('TN','AL','SD','TN',
+ and s_state in ('TN','SD','AL','TN',
                  'SD','SD','SD','SD');
 
 

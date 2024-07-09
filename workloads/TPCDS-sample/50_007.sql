@@ -9,7 +9,7 @@ from
   ,date_dim d2
 where
     d2.d_year = 2001
-and d2.d_moy  = 8
+and d2.d_moy  = 10
 and ss_ticket_number = sr_ticket_number
 and ss_item_sk = sr_item_sk
 and ss_sold_date_sk   = d1.d_date_sk

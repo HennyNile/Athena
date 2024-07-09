@@ -7,8 +7,8 @@ select  count(*)
        ss_cdemo_sk = cd_demo_sk and
        cd_gender = 'M' and
        cd_marital_status = 'U' and
-       cd_education_status = 'Secondary' and
-       d_year = 1998 and
-       s_state in ('AL','SD', 'TN', 'SD', 'SD', 'SD');
+       cd_education_status = '4 yr Degree' and
+       d_year = 2001 and
+       s_state in ('TN','SD', 'AL', 'SD', 'SD', 'SD');
 
 

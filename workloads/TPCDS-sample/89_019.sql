@@ -4,12 +4,12 @@ from item, store_sales, date_dim, store
 where ss_item_sk = i_item_sk and
       ss_sold_date_sk = d_date_sk and
       ss_store_sk = s_store_sk and
-      d_year in (2000) and
-        ((i_category in ('Electronics','Sports','Music') and
-          i_class in ('audio','sailing','pop')
+      d_year in (1998) and
+        ((i_category in ('Music','Children','Shoes') and
+          i_class in ('country','infants','womens')
          )
-      or (i_category in ('Shoes','Men','Books') and
-          i_class in ('kids','shirts','computers') 
+      or (i_category in ('Sports','Jewelry','Home') and
+          i_class in ('camping','bracelets','accent') 
         ));
 
 

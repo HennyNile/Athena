@@ -5,7 +5,7 @@ select  count(*)
  where ws_web_page_sk = wp_web_page_sk
    and ws_item_sk = wr_item_sk
    and ws_order_number = wr_order_number
-   and ws_sold_date_sk = d_date_sk and d_year = 1998
+   and ws_sold_date_sk = d_date_sk and d_year = 2000
    and cd1.cd_demo_sk = wr_refunded_cdemo_sk 
    and cd2.cd_demo_sk = wr_returning_cdemo_sk
    and ca_address_sk = wr_refunded_addr_sk
@@ -17,7 +17,7 @@ select  count(*)
      and
      cd1.cd_marital_status = cd2.cd_marital_status
      and
-     cd1.cd_education_status = '4 yr Degree'
+     cd1.cd_education_status = 'Primary'
      and 
      cd1.cd_education_status = cd2.cd_education_status
      and
@@ -25,11 +25,11 @@ select  count(*)
     )
    or
     (
-     cd1.cd_marital_status = 'D'
+     cd1.cd_marital_status = 'S'
      and
      cd1.cd_marital_status = cd2.cd_marital_status
      and
-     cd1.cd_education_status = 'Primary' 
+     cd1.cd_education_status = '4 yr Degree' 
      and
      cd1.cd_education_status = cd2.cd_education_status
      and
@@ -37,11 +37,11 @@ select  count(*)
     )
    or
     (
-     cd1.cd_marital_status = 'U'
+     cd1.cd_marital_status = 'D'
      and
      cd1.cd_marital_status = cd2.cd_marital_status
      and
-     cd1.cd_education_status = 'Advanced Degree'
+     cd1.cd_education_status = 'Unknown'
      and
      cd1.cd_education_status = cd2.cd_education_status
      and
@@ -53,21 +53,21 @@ select  count(*)
     (
      ca_country = 'United States'
      and
-     ca_state in ('KY', 'GA', 'NM')
+     ca_state in ('TN', 'IL', 'GA')
      and ws_net_profit between 100 and 200  
     )
     or
     (
      ca_country = 'United States'
      and
-     ca_state in ('MT', 'OR', 'IN')
+     ca_state in ('KS', 'WV', 'FL')
      and ws_net_profit between 150 and 300  
     )
     or
     (
      ca_country = 'United States'
      and
-     ca_state in ('WI', 'MO', 'WV')
+     ca_state in ('WI', 'VA', 'NE')
      and ws_net_profit between 50 and 250  
     )
    );

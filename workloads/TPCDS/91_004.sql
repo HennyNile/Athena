@@ -19,7 +19,7 @@ and     d_year                  = 2000
 and     d_moy                   = 11
 and     ( (cd_marital_status       = 'M' and cd_education_status     = 'Unknown')
         or(cd_marital_status       = 'W' and cd_education_status     = 'Advanced Degree'))
-and     hd_buy_potential like '1001-5000%'
+and     hd_buy_potential like '501-1000%'
 and     ca_gmt_offset           = -7;
 
 

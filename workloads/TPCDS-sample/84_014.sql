@@ -6,10 +6,10 @@ select  count(*)
      ,household_demographics
      ,income_band
      ,store_returns
- where ca_city	        =  'Oak Hill'
+ where ca_city	        =  'Oakdale'
    and c_current_addr_sk = ca_address_sk
-   and ib_lower_bound   >=  47312
-   and ib_upper_bound   <=  47312 + 50000
+   and ib_lower_bound   >=  59737
+   and ib_upper_bound   <=  59737 + 50000
    and ib_income_band_sk = hd_income_band_sk
    and cd_demo_sk = c_current_cdemo_sk
    and hd_demo_sk = c_current_hdemo_sk

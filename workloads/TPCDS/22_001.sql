@@ -5,6 +5,6 @@ select  count(*)
            ,item
        where inv_date_sk=d_date_sk
               and inv_item_sk=i_item_sk
-              and d_month_seq between 1212 and 1212 + 11;
+              and d_month_seq between 1192 and 1192 + 11;
 
 

@@ -5,9 +5,9 @@ select  count(*)
        cs_item_sk = i_item_sk and
        cs_bill_cdemo_sk = cd_demo_sk and
        cs_promo_sk = p_promo_sk and
-       cd_gender = 'F' and 
-       cd_marital_status = 'D' and
-       cd_education_status = 'Secondary' and
+       cd_gender = 'M' and 
+       cd_marital_status = 'M' and
+       cd_education_status = 'Advanced Degree' and
        (p_channel_email = 'N' or p_channel_event = 'N') and
        d_year = 2000;
 

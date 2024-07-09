@@ -12,9 +12,9 @@ select count(*)
    and   ca_address_sk = c_current_addr_sk
    and   ss_item_sk = i_item_sk
    and   ca_gmt_offset = -6
-   and   i_category = 'Books'
+   and   i_category = 'Jewelry'
    and   s_gmt_offset = -6
-   and   d_year = 2000
-   and   d_moy  = 12;
+   and   d_year = 1998
+   and   d_moy  = 11;
 
 

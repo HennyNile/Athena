@@ -6,9 +6,9 @@ select  count(*)
        ss_store_sk = s_store_sk and
        ss_cdemo_sk = cd_demo_sk and
        cd_gender = 'M' and
-       cd_marital_status = 'M' and
-       cd_education_status = 'Advanced Degree' and
-       d_year = 2000 and
-       s_state in ('AL','SD', 'TN', 'SD', 'SD', 'SD');
+       cd_marital_status = 'W' and
+       cd_education_status = 'Unknown' and
+       d_year = 2002 and
+       s_state in ('AL','TN', 'SD', 'SD', 'SD', 'SD');
 
 

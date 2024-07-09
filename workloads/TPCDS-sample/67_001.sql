@@ -7,6 +7,6 @@ select  count(*)
        where  ss_sold_date_sk=d_date_sk
           and ss_item_sk=i_item_sk
           and ss_store_sk = s_store_sk
-          and d_month_seq between 1176 and 1176+11;
+          and d_month_seq between 1190 and 1190+11;
 
 

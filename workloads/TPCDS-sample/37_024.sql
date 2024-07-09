@@ -1,11 +1,11 @@
 
 select count(*)
  from item, inventory, date_dim, catalog_sales
- where i_current_price between 68 and 68 + 30
+ where i_current_price between 18 and 18 + 30
  and inv_item_sk = i_item_sk
  and d_date_sk=inv_date_sk
- and d_date between cast('1999-05-20' as date) and (cast('1999-05-20' as date) +  60 days)
- and i_manufact_id in (768,870,911,887)
+ and d_date between cast('2000-03-23' as date) and (cast('2000-03-23' as date) +  interval '60 day')
+ and i_manufact_id in (889,855,706,716)
  and inv_quantity_on_hand between 100 and 500
  and cs_item_sk = i_item_sk;
 

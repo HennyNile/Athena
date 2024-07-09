@@ -5,10 +5,10 @@ select  count(*)
        ss_item_sk = i_item_sk and
        ss_store_sk = s_store_sk and
        ss_cdemo_sk = cd_demo_sk and
-       cd_gender = 'M' and
+       cd_gender = 'F' and
        cd_marital_status = 'M' and
-       cd_education_status = '4 yr Degree' and
-       d_year = 2002 and
-       s_state in ('SD','TN', 'AL', 'SD', 'SD', 'SD');
+       cd_education_status = 'Advanced Degree' and
+       d_year = 2000 and
+       s_state in ('TN','AL', 'SD', 'SD', 'SD', 'SD');
 
 

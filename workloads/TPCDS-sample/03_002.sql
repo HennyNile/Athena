@@ -5,7 +5,7 @@ select  count(*)
       ,item
  where dt.d_date_sk = store_sales.ss_sold_date_sk
    and store_sales.ss_item_sk = item.i_item_sk
-   and item.i_manufact_id = 577
+   and item.i_manufact_id = 45
    and dt.d_moy=12;
 
 

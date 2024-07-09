@@ -17,7 +17,7 @@ select  count(*)
      and
      cd1.cd_marital_status = cd2.cd_marital_status
      and
-     cd1.cd_education_status = '4 yr Degree'
+     cd1.cd_education_status = 'Unknown'
      and 
      cd1.cd_education_status = cd2.cd_education_status
      and
@@ -25,11 +25,11 @@ select  count(*)
     )
    or
     (
-     cd1.cd_marital_status = 'W'
+     cd1.cd_marital_status = 'S'
      and
      cd1.cd_marital_status = cd2.cd_marital_status
      and
-     cd1.cd_education_status = 'Secondary' 
+     cd1.cd_education_status = 'College' 
      and
      cd1.cd_education_status = cd2.cd_education_status
      and
@@ -41,7 +41,7 @@ select  count(*)
      and
      cd1.cd_marital_status = cd2.cd_marital_status
      and
-     cd1.cd_education_status = '2 yr Degree'
+     cd1.cd_education_status = 'Primary'
      and
      cd1.cd_education_status = cd2.cd_education_status
      and
@@ -53,21 +53,21 @@ select  count(*)
     (
      ca_country = 'United States'
      and
-     ca_state in ('MS', 'AL', 'TX')
+     ca_state in ('MI', 'KY', 'ID')
      and ws_net_profit between 100 and 200  
     )
     or
     (
      ca_country = 'United States'
      and
-     ca_state in ('ME', 'KY', 'SD')
+     ca_state in ('OR', 'UT', 'GA')
      and ws_net_profit between 150 and 300  
     )
     or
     (
      ca_country = 'United States'
      and
-     ca_state in ('WY', 'LA', 'MA')
+     ca_state in ('VA', 'TX', 'ND')
      and ws_net_profit between 50 and 250  
     )
    );

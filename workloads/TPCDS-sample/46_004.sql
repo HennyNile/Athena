@@ -5,10 +5,10 @@ select  count(*)
     and store_sales.ss_store_sk = store.s_store_sk  
     and store_sales.ss_hdemo_sk = household_demographics.hd_demo_sk
     and store_sales.ss_addr_sk = customer_address.ca_address_sk
-    and (household_demographics.hd_dep_count = 5 or
-         household_demographics.hd_vehicle_count= 0)
+    and (household_demographics.hd_dep_count = 3 or
+         household_demographics.hd_vehicle_count= 1)
     and date_dim.d_dow in (6,0)
-    and date_dim.d_year in (1999,1999+1,1999+2) 
-    and store.s_city in ('Five Points','Midway','Riverside','Fairview','Pleasant Hill');
+    and date_dim.d_year in (2000,2000+1,2000+2) 
+    and store.s_city in ('Oak Grove','Five Points','Midway','Pleasant Hill','Riverside');
 
 

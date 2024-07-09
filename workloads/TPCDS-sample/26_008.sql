@@ -9,6 +9,6 @@ select  count(*)
        cd_marital_status = 'U' and
        cd_education_status = 'Secondary' and
        (p_channel_email = 'N' or p_channel_event = 'N') and
-       d_year = 1999;
+       d_year = 2001;
 
 

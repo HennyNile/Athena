@@ -5,7 +5,7 @@ select  count(*)
    ,date_dim       d1
    ,item
  where
-    d1.d_month_seq between 1176 and 1176+11
+    d1.d_month_seq between 1196 and 1196+11
  and d1.d_date_sk = ws_sold_date_sk
  and i_item_sk  = ws_item_sk;
 

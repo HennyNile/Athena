@@ -7,12 +7,12 @@ select  count(*)
        cs_bill_cdemo_sk = cd1.cd_demo_sk and
        cs_bill_customer_sk = c_customer_sk and
        cd1.cd_gender = 'M' and 
-       cd1.cd_education_status = 'College' and
+       cd1.cd_education_status = 'Advanced Degree' and
        c_current_cdemo_sk = cd2.cd_demo_sk and
        c_current_addr_sk = ca_address_sk and
-       c_birth_month in (4,5,12,2,11,3) and
-       d_year = 2000 and
-       ca_state in ('MN','MO','GA'
-                   ,'NE','OR','IN','OK');
+       c_birth_month in (5,10,11,6,2,8) and
+       d_year = 1999 and
+       ca_state in ('NY','CA','IN'
+                   ,'MS','TX','WI','KY');
 
 

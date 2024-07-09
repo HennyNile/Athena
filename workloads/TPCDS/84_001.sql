@@ -6,10 +6,10 @@ select  count(*)
      ,household_demographics
      ,income_band
      ,store_returns
- where ca_city	        =  'Ashland'
+ where ca_city	        =  'Pleasant Grove'
    and c_current_addr_sk = ca_address_sk
-   and ib_lower_bound   >=  10664
-   and ib_upper_bound   <=  10664 + 50000
+   and ib_lower_bound   >=  7078
+   and ib_upper_bound   <=  7078 + 50000
    and ib_income_band_sk = hd_income_band_sk
    and cd_demo_sk = c_current_cdemo_sk
    and hd_demo_sk = c_current_hdemo_sk
