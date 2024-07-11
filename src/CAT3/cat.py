@@ -1,3 +1,4 @@
+from datetime import datetime
 import math
 import sys
 
@@ -12,7 +13,7 @@ from src.utils.db_utils import DataType, DBInfo
 from src.utils.TreeConvolution.util import prepare_trees
 
 from model import LeroNet
-from expr_featurizer import PlanInfo, ExprParser, OpType, AtomicNode, Column, Number, Array, Null, ExprTree
+from expr_featurizer import PlanInfo, ExprParser, OpType, AtomicNode, Column, Number, Timestamp, Array, Null, ExprTree
 
 UNKNOWN_OP_TYPE = "Unknown"
 SCAN_TYPES = ["Seq Scan", "Index Scan", "Index Only Scan", 'Bitmap Heap Scan']
@@ -50,6 +51,9 @@ def get_alias_map(sample) -> tuple[PlanInfo, int]:
 
     dfs(root)
     return PlanInfo(alias_map, relation_names), max_card
+
+def copy_indices(indices: list[list[int]]) -> list[list[int]]:
+    return [l[:] for l in indices]
 
 def batch_indices(batch: list[list[list[int]]]):
     max_len = max([len(l) for l in batch])
@@ -230,11 +234,11 @@ class Lero:
                 filter_index = 0
                 if sample_node.cond_expr is not None:
                     expr_list.append(sample_node.cond_expr.vecs)
-                    indices_list.append(sample_node.cond_expr.indices)
+                    indices_list.append(copy_indices(sample_node.cond_expr.indices))
                     cond_index = len(expr_list)
                 if sample_node.filter_expr is not None:
                     expr_list.append(sample_node.filter_expr.vecs)
-                    indices_list.append(sample_node.filter_expr.indices)
+                    indices_list.append(copy_indices(sample_node.filter_expr.indices))
                     filter_index = len(expr_list)
                 cond_indices.append(cond_index)
                 filter_indices.append(filter_index)
@@ -276,7 +280,7 @@ class Lero:
 
     def _norm_est_card(self, est_card: float) -> float:
         return (math.log(est_card + 1) - self.min_est_card) / (self.max_est_card - self.min_est_card)
-    
+
     def _norm_width(self, width: int) -> float:
         return width / self.max_width
 
@@ -378,6 +382,11 @@ class Lero:
         arr[self.rows_offset] = self._norm_est_card(node['Plan Rows'])
         return arr
 
+    def _norm_timestamp(self, dt: datetime):
+        min_t = self.db_info.min_timestamp.timestamp()
+        max_t = self.db_info.max_timestamp.timestamp()
+        return (dt.timestamp() - min_t) / (max_t - min_t)
+
     def _featurize_atomic_expr(self, node: AtomicNode) -> np.ndarray:
         ret = np.zeros(self.expr_dim, dtype=np.float32)
         data_type = self.db_info.data_types[node.left.column]
@@ -391,7 +400,8 @@ class Lero:
             ret[self.right_column_offset + node.right.column] = 1
         elif type(node.right) == Number:
             ret[self.number_offset] = node.right.value
-            ret[self.array_offset] = 1 / self.max_array_len
+        elif type(node.right) == Timestamp:
+            ret[self.number_offset] = self._norm_timestamp(node.right.timestamp)
         elif type(node.right) == Array:
             ret[self.array_offset] = node.right.size / self.max_array_len
         elif type(node.right) == Null:

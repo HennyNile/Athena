@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable
+from datetime import datetime
 from enum import Enum
 import sys
 
@@ -57,6 +58,19 @@ class Number(Entity):
 
     def __str__(self) -> str:
         return f'Number({self.value})'
+
+class Timestamp(Entity):
+    def __init__(self, repr: str):
+        super().__init__()
+        self.timestamp = datetime.strptime(repr, '%Y-%m-%d %H:%M:%S')
+
+    def __eq__(self, value: Entity) -> bool:
+        if type(value) != Timestamp:
+            return False
+        return value.timestamp == self.timestamp
+    
+    def __str__(self) -> str:
+        return f'Timestamp({self.timestamp})'
 
 class Array(Entity):
     def __init__(self, size: int):
@@ -326,14 +340,16 @@ class ExprParser:
 
     # <expr>        :== <term> [("AND" | "OR") <expr>]
     # <term>        :== "(" <expr> ")" | <column> <op> <entity>
-    # <entity>      :== <column> | <value> | <array> | "NULL" | <text>
+    # <entity>      :== <column> | <value> | <array> | "NULL" | <text> | <time> | <integer>
     # <column>      :== "(" <column name> ")" "::" "text" | <column name>
     # <column name> :== identifier "." identifier | identifier
     # <op>          :== "=" | "!=" | "<" | "<=" | ">" | ">=" | "~~" | "!~~" | "IS" | "IS NOT"
     # <value>       :== number
-    # <array>       :== "ANY" "'{" [<array list>] "}'" "::" "text"
+    # <array>       :== "ANY" "(" "'{" [<array list>] "}'" "::" "text" "[" "]" ")"
     # <array list>  :== (word | double_quote | single_quote) ["," <array list>]
     # <text>        :== single_quote "::" "text"
+    # <integer>     :== single_quote "::" "integer"
+    # <time>        :== single_quote "::" "timestamp" "without" "time" "zone"
 
     def parse_expr(self) -> ExprTreeNode:
         ret = self.parse_term()
@@ -478,10 +494,16 @@ class ExprParser:
                 else:
                     return self.parse_column()
             case TokenType.SINGLE_QUOTE:
-                self.idx += 1
-                self.expect(TokenType.ATTRIBUTE)
-                self.expect(TokenType.IDENTIFIER, ['text'])
-                return Array(1)
+                if self.tokens[self.idx + 1][0] != TokenType.ATTRIBUTE:
+                    raise RuntimeError(f'Unexpected token: {t}, {token} at {self.idx + 1}')
+                if self.tokens[self.idx + 2][0] != TokenType.IDENTIFIER or self.tokens[self.idx + 2][1] not in ('text', 'timestamp', 'integer'):
+                    raise RuntimeError(f'Unexpected token: {t}, {token} at {self.idx + 2}')
+                if self.tokens[self.idx + 2][1] == 'integer':
+                    return self.parse_integer(column_idx, delta)
+                elif self.tokens[self.idx + 2][1] == 'text':
+                    return self.parse_text()
+                else:
+                    return self.parse_timestamp()
             case _:
                 raise RuntimeError(f'Unexpected token: {t}, {token} at {self.idx}')
 
@@ -520,3 +542,23 @@ class ExprParser:
         self.expect(TokenType.RIGHT_PARAN)
         self.max_array_len = max(self.max_array_len, array_len)
         return Array(array_len)
+
+    def parse_integer(self, column_idx: int, delta: float) -> Number:
+        _, token = self.tokens[self.idx]
+        self.idx += 3
+        m, M = self.db_info.get_normalizer(column_idx)
+        value = float(token[1:-1]) + delta
+        value = (value - m) / (M - m)
+        return Number(value)
+
+    def parse_text(self) -> Array:
+        self.idx += 3
+        return Array(1)
+
+    def parse_timestamp(self) -> Array:
+        _, timestamp_str = self.tokens[self.idx]
+        self.idx += 3
+        self.expect(TokenType.IDENTIFIER, 'without')
+        self.expect(TokenType.IDENTIFIER, 'time')
+        self.expect(TokenType.IDENTIFIER, 'zone')
+        return Timestamp(timestamp_str[1:-1])

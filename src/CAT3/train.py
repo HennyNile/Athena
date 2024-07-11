@@ -109,11 +109,12 @@ def train(model: Lero, optimizer, dataloader, val_dataloader, test_dataloader, n
             min_cost = torch.min(cost_label)
             pred_costs.append(pred_cost.item())
             min_costs.append(min_cost.item())
-        total_pred_cost = sum(pred_costs)
-        total_min_cost = sum(min_costs)
-        ability = total_min_cost / total_pred_cost
-        writer.add_scalar('val/ability', ability, epoch)
-        print(f'Validation ability: {ability * 100}%', flush=True)
+        if len(pred_costs) != 0:
+            total_pred_cost = sum(pred_costs)
+            total_min_cost = sum(min_costs)
+            ability = total_min_cost / total_pred_cost
+            writer.add_scalar('val/ability', ability, epoch)
+            print(f'Validation ability: {ability * 100}%', flush=True)
 
         if test_dataloader is not None:
             losses = []
@@ -152,8 +153,6 @@ def train(model: Lero, optimizer, dataloader, val_dataloader, test_dataloader, n
                 else:
                     pred_costs.append(pred_cost.item())
                 min_costs.append(min_cost.item())
-            with open('cat3.json', 'w') as f:
-                json.dump(pred_costs, f)
             total_pred_cost = sum(pred_costs)
             total_min_cost = sum(min_costs)
             ability = total_min_cost / total_pred_cost

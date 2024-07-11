@@ -45,33 +45,35 @@ class NodeType(Enum):
     BitmapIndexScan = 13
 
 class SyntaxType(Enum):
-    LEFT_PARAN    = 0
-    RIGHT_PARAN   = 1
-    LEFT_BRACKET  = 2
-    RIGHT_BRACKET = 3
-    ARRAY_BEGIN   = 4
-    ARRAY_END     = 5
-    EQUAL         = 6
-    LESS_THAN     = 7
-    GREATER_THAN  = 8
-    LESS_EQUAL    = 9
-    GREATER_EQUAL = 10
-    NOT_EQUAL     = 11
-    DOT           = 12
-    COMMA         = 13
-    SINGLE_QUOTE  = 14
-    DOUBLE_QUOTE  = 15
-    WILDCARD      = 16
-    ATTRIBUTE     = 17
-    OP_LIKE       = 18
-    OP_NOT_LIKE   = 19
-    KEYWORD_TEXT  = 20
-    KEYWORD_ANY   = 21
-    KEYWORD_AND   = 22
-    KEYWORD_OR    = 23
-    KEYWORD_IS    = 24
-    KEYWORD_NOT   = 25
-    KEYWORD_NULL  = 26
+    LEFT_PARAN      = 0
+    RIGHT_PARAN     = 1
+    LEFT_BRACKET    = 2
+    RIGHT_BRACKET   = 3
+    ARRAY_BEGIN     = 4
+    ARRAY_END       = 5
+    EQUAL           = 6
+    LESS_THAN       = 7
+    GREATER_THAN    = 8
+    LESS_EQUAL      = 9
+    GREATER_EQUAL   = 10
+    NOT_EQUAL       = 11
+    DOT             = 12
+    COMMA           = 13
+    SINGLE_QUOTE    = 14
+    DOUBLE_QUOTE    = 15
+    WILDCARD        = 16
+    ATTRIBUTE       = 17
+    OP_LIKE         = 18
+    OP_NOT_LIKE     = 19
+    KEYWORD_TEXT    = 20
+    KEYWORD_ANY     = 21
+    KEYWORD_AND     = 22
+    KEYWORD_OR      = 23
+    KEYWORD_IS      = 24
+    KEYWORD_NOT     = 25
+    KEYWORD_NULL    = 26
+    FUNCTION_SUBSTR = 27
+    KEYWORD_INTEGER = 28
 
 keys = [
     "Node Type",
@@ -228,8 +230,11 @@ class NumberToken:
 
 class TimestampToken:
     def __init__(self, s: str) -> None:
-        self.timestamp = datetime.strptime(s, '%Y-%m-%d %H:%M:%S')
-    
+        try:
+            self.timestamp = datetime.strptime(s, '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            self.timestamp = datetime.strptime(s, '%Y-%m-%d')
+
     def __str__(self) -> str:
         return f'Timestamp{{{self.timestamp}}}'
 
@@ -267,6 +272,10 @@ def word_splitter(word):
                 ret.append(WordToken(':'))
             case TokenType.ADD:
                 ret.append(WordToken('+'))
+            case TokenType.HASH:
+                ret.append(WordToken('#'))
+            case TokenType.GREATER_THAN:
+                ret.append(WordToken('>'))
             case _:
                 raise NotImplementedError
     return ret
@@ -331,6 +340,18 @@ def tokenizer(expr: str, plan_info: PlanInfo, db_info: DBInfo, node: dict, node_
                         else:
                             raise RuntimeError("Number should be a column value")
                         skip = 2
+                    elif tokens[idx + 2][1] == "numeric":
+                        if len(ret) >= 2 and type(ret[-2]) == ColumnToken:
+                            m, M = db_info.get_normalizer(ret[-2].column_id)
+                            value = float(token[1:-1])
+                            value = (value - float(m)) / float(M - m)
+                            ret.append(NumberToken(value))
+                        else:
+                            raise RuntimeError("Number should be a column value")
+                        skip = 2
+                    elif tokens[idx + 2][1] == "date":
+                        ret.append(TimestampToken(token[1:-1]))
+                        skip = 2
                     elif tokens[idx + 2][1] == "timestamp":
                         ret.append(TimestampToken(token[1:-1]))
                         skip = 5
@@ -338,8 +359,12 @@ def tokenizer(expr: str, plan_info: PlanInfo, db_info: DBInfo, node: dict, node_
                         ret.append(SyntaxToken(SyntaxType.SINGLE_QUOTE))
                         ret.extend(word_splitter(token[1:-1]))
                         ret.append(SyntaxToken(SyntaxType.SINGLE_QUOTE))
+                    elif tokens[idx + 2][1] == "bpchar":
+                        ret.append(SyntaxToken(SyntaxType.SINGLE_QUOTE))
+                        ret.extend(word_splitter(token[1:-1]))
+                        ret.append(SyntaxToken(SyntaxType.SINGLE_QUOTE))
                     else:
-                        raise RuntimeError(f"Unknown attribute: {tokens[idx + 2][1]}")
+                        raise RuntimeError(f"Unknown attribute: {tokens[idx + 2][1]} for token {token}")
                 else:
                     ret.append(SyntaxToken(SyntaxType.SINGLE_QUOTE))
                     ret.extend(word_splitter(token[1:-1]))
@@ -357,7 +382,11 @@ def tokenizer(expr: str, plan_info: PlanInfo, db_info: DBInfo, node: dict, node_
                 elif token in plan_info.rel_names:
                     ret.append(RelationToken(db_info.table_map[token]))
                     ret.append(AliasToken(0))
-                elif idx > 0 and (tokens[idx - 1][0] == TokenType.DOT or tokens[idx - 1][0] == TokenType.LEFT_PARAN):
+                elif token == 'substr':
+                    ret.append(SyntaxToken(SyntaxType.FUNCTION_SUBSTR))
+                elif token == 'ANY':
+                    ret.append(SyntaxToken(SyntaxType.KEYWORD_ANY))
+                elif idx > 0 and (tokens[idx - 1][0] == TokenType.DOT or tokens[idx - 1][0] == TokenType.EQUAL or tokens[idx - 1][0] == TokenType.LEFT_PARAN):
                     if len(ret) >= 3 and type(ret[-1]) == SyntaxToken and ret[-1].syntax == SyntaxType.DOT and type(ret[-3]) == RelationToken:
                         relation_id = ret[-3].relation_id
                     elif 'Relation Name' in node:
@@ -374,8 +403,32 @@ def tokenizer(expr: str, plan_info: PlanInfo, db_info: DBInfo, node: dict, node_
                     ret.append(ColumnToken(column_id))
                 elif token == 'text':
                     ret.append(SyntaxToken(SyntaxType.KEYWORD_TEXT))
-                elif token == 'ANY':
-                    ret.append(SyntaxToken(SyntaxType.KEYWORD_ANY))
+                elif token == 'bpchar':
+                    ret.append(SyntaxToken(SyntaxType.KEYWORD_TEXT))
+                elif token == 'integer':
+                    begin_idx = -1
+                    while not (type(ret[begin_idx]) == SyntaxToken and ret[begin_idx].syntax == SyntaxType.ARRAY_BEGIN):
+                        begin_idx -= 1
+                    new_ret = ret[:begin_idx + 1]
+                    print(db_info.column_map)
+                    print(ret[begin_idx - 4])
+                    m, M = db_info.get_normalizer(ret[begin_idx - 4].column_id)
+                    print(m, M)
+                    current_word = ''
+                    for array_idx in range(begin_idx + 1, -2):
+                        if type(ret[array_idx]) == WordToken:
+                            current_word += ret[array_idx].word
+                        elif type(ret[array_idx]) == SyntaxToken and (ret[array_idx].syntax == SyntaxType.COMMA or ret[array_idx].syntax == SyntaxType.ARRAY_END):
+                            value = float(current_word)
+                            value = (value - float(m)) / float(M - m)
+                            new_ret.append(NumberToken(value))
+                            new_ret.append(ret[array_idx])
+                            current_word = ''
+                        else:
+                            raise RuntimeError(f'Unexpected token type')
+                    ret = new_ret
+                    ret.append(SyntaxToken(SyntaxType.ATTRIBUTE))
+                    ret.append(SyntaxToken(SyntaxType.KEYWORD_INTEGER))
                 elif token == 'AND':
                     ret.append(SyntaxToken(SyntaxType.KEYWORD_AND))
                 elif token == 'OR':
@@ -387,15 +440,15 @@ def tokenizer(expr: str, plan_info: PlanInfo, db_info: DBInfo, node: dict, node_
                 elif token == 'NULL':
                     ret.append(SyntaxToken(SyntaxType.KEYWORD_NULL))
                 else:
-                    raise NotImplementedError
+                    raise NotImplementedError(f'{token}, {tokens[idx - 1]}')
             case TokenType.NUMBER:
                 if len(ret) >= 2 and type(ret[-2]) == ColumnToken:
                     m, M = db_info.get_normalizer(ret[-2].column_id)
                     value = float(token)
-                    value = (value - m) / (M - m)
+                    value = (value - float(m)) / float(M - m)
                     ret.append(NumberToken(value))
                 else:
-                    raise RuntimeError("Number should be a column value")
+                    pass
             case TokenType.WORD:
                 ret.extend(word_splitter(token))
             case _:
@@ -708,8 +761,8 @@ class Cat:
                         self.word_table[token.word] = len(self.word_table)
 
     def _norm_timestamp(self, dt: datetime) -> float:
-        min_t = self.db_info.min_time.timestamp()
-        max_t = self.db_info.max_time.timestamp()
+        min_t = self.db_info.min_timestamp.timestamp()
+        max_t = self.db_info.max_timestamp.timestamp()
         return (dt.timestamp() - min_t) / (max_t - min_t)
 
     def _featurize_plan(self, plan: dict, weight: float = 1.) -> Sample:

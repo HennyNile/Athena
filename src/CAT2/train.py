@@ -79,10 +79,13 @@ def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epo
             cards_losses.append(cards_loss.item())
             pred = cost.view(-1, 2)
             label = input.cost.view(-1, 2)
-            # pred  = pred[:,0] - pred[:,1]
-            # label = (label[:,0] > label[:,1]).float()
-            # cost_loss = F.binary_cross_entropy_with_logits(pred, label)
-            cost_loss = ((label / label.sum(dim=1, keepdim=True)).nan_to_num(1.) * pred.softmax(dim=1)).sum()
+            cost_weight = (label / label.sum(dim=1, keepdim=True)).nan_to_num(1.)
+            cost_weight = torch.abs(cost_weight[:, 0] - cost_weight[:, 1])
+            cost_weight = cost_weight / cost_weight.sum()
+            pred  = pred[:,0] - pred[:,1]
+            label = (label[:,0] > label[:,1]).float()
+            cost_loss = F.binary_cross_entropy_with_logits(pred, label, cost_weight, reduction='sum')
+            # cost_loss = ((label / label.sum(dim=1, keepdim=True)).nan_to_num(1.) * pred.softmax(dim=1)).sum()
             cost_losses.append(cost_loss.item())
             loss = 1000 * cards_loss + cost_loss
             optimizer.zero_grad()
@@ -130,7 +133,7 @@ def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epo
             labels = np.concatenate(labels)
             preds = val_dataloader.batch_sampler.group(preds)
             labels = val_dataloader.batch_sampler.group(labels)
-            argmin_pred = [np.argmax(pred).item() for pred in preds]
+            argmin_pred = [np.argmin(pred).item() for pred in preds]
             pred_costs = [label[min_pred].item() for label, min_pred in zip(labels, argmin_pred)]
             min_costs = [np.min(label).item() for label in labels]
             total_pred_cost = sum(pred_costs)
@@ -157,7 +160,7 @@ def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epo
             labels = np.concatenate(labels)
             preds = test_dataloader.batch_sampler.group(preds)
             labels = test_dataloader.batch_sampler.group(labels)
-            argmin_pred = [np.argmax(pred).item() for pred in preds]
+            argmin_pred = [np.argmin(pred).item() for pred in preds]
             pred_costs = [label[min_pred].item() for label, min_pred in zip(labels, argmin_pred)]
             default_costs = [label[0].item() for label in labels]
             def get_timeout_cost(default):
@@ -168,8 +171,8 @@ def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epo
                     return 5000
                 else:
                     return timeout
-            pred_costs = [cost if cost != float('inf') else get_timeout_cost(default) for cost, default in zip(pred_costs, default_costs)]
             timeouts = [get_timeout_cost(default) for cost, default in zip(pred_costs, default_costs) if cost == float('inf')]
+            pred_costs = [cost if cost != float('inf') else get_timeout_cost(default) for cost, default in zip(pred_costs, default_costs)]
             min_costs = [np.min(label).item() for label in labels]
             total_pred_cost = sum(pred_costs)
             total_min_cost = sum(min_costs)
@@ -192,6 +195,8 @@ def main(args: argparse.Namespace):
     # split dataset
     train_queries = [query for name, query in zip(names, dataset) if name not in val_names]
     val_queries = [query for name, query in zip(names, dataset) if name in val_names]
+    if args.test != '':
+        _, test_queries = read_dataset(os.path.join('datasets', args.test))
 
     # read db info
     with DBConn(database) as db:
@@ -199,7 +204,10 @@ def main(args: argparse.Namespace):
 
     # create model
     model = Cat(db_info)
-    model.fit_all(train_queries + val_queries)
+    if args.test != '':
+        model.fit_all(train_queries + val_queries + test_queries)
+    else:
+        model.fit_all(train_queries + val_queries)
     model.fit_train(train_queries)
     model.init_model()
 
@@ -211,7 +219,6 @@ def main(args: argparse.Namespace):
     dataloader = DataLoader(train_dataset, batch_sampler=pairwise_sampler, collate_fn=model.batch_transformed_samples, num_workers=8)
     val_dataloader = DataLoader(val_dataset, batch_sampler=val_sampler, collate_fn=model.batch_transformed_samples, num_workers=8)
     if args.test != '':
-        _, test_queries = read_dataset(os.path.join('datasets', args.test))
         test_dataset = PlanDataset(test_queries, model, 'tmp_test')
         test_sampler = BatchedQuerySampler(test_queries, args.batch_size)
         test_dataloader = DataLoader(test_dataset, batch_sampler=test_sampler, collate_fn=model.batch_transformed_samples, num_workers=8)

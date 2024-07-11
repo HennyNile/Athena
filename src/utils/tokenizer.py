@@ -30,6 +30,7 @@ class TokenType(Enum):
     IDENTIFIER    = 26
     NUMBER        = 27
     WORD          = 28
+    HASH          = 29
 
 def tokenizer(expr: str) -> list[tuple[TokenType, str]]:
     tokens: list[tuple[TokenType, str]] = []
@@ -206,6 +207,12 @@ def string_splitter(expr: str) -> list[tuple[TokenType, str]]:
             idx += 1
         elif expr[idx] == ',':
             tokens.append((TokenType.COMMA, ','))
+            idx += 1
+        elif expr[idx] == '#':
+            tokens.append((TokenType.HASH, '#'))
+            idx += 1
+        elif expr[idx] == '>':
+            tokens.append((TokenType.GREATER_THAN, '>'))
             idx += 1
         elif expr[idx].isalpha():
             start = idx
