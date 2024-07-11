@@ -79,8 +79,8 @@ def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epo
         if test_dataloader is not None:
             losses = []
             pred_costs = []
+            timeout_costs = []
             min_costs = []
-            num_timeout = 0
             for trees, cost_label in tqdm(test_dataloader):
                 cost = model.model(trees)
                 pred = cost.view(-1)
@@ -88,13 +88,14 @@ def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epo
                 pred_cost = cost_label[argmin_pred]
                 min_cost = torch.min(cost_label)
                 if pred_cost.item() == float('inf'):
-                    num_timeout += 1
-                    timeout_cost = cost_label[0].item()
+                    default = cost_label[0].item()
+                    timeout_cost = 4 * default
                     if timeout_cost >= 240000:
-                        timeout_cost = max(cost_label[0], 240000)
+                        timeout_cost = max(default, 240000)
                     elif timeout_cost <= 5000:
                         timeout_cost = 5000
                     pred_costs.append(timeout_cost)
+                    timeout_costs.append(timeout_cost)
                 else:
                     pred_costs.append(pred_cost.item())
                 min_costs.append(min_cost.item())
@@ -102,7 +103,7 @@ def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epo
             total_min_cost = sum(min_costs)
             ability = total_min_cost / total_pred_cost
             writer.add_scalar('test/ability', ability, epoch)
-            print(f'Test ability: {ability * 100}%, pred time: {total_pred_cost / 1000}, min time: {total_min_cost / 1000}, num timeout: {num_timeout}', flush=True)
+            print(f'Test ability: {ability * 100}%, pred time: {total_pred_cost / 1000}, min time: {total_min_cost / 1000}, {len(timeout_costs)} timeouts: {[c / 1000 for c in timeout_costs]}', flush=True)
 
 def main(args: argparse.Namespace):
     dataset_regex = re.compile(r'([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)')

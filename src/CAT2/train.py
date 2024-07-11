@@ -171,14 +171,14 @@ def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epo
                     return 5000
                 else:
                     return timeout
-            timeouts = [get_timeout_cost(default) for cost, default in zip(pred_costs, default_costs) if cost == float('inf')]
+            timeout_costs = [get_timeout_cost(default) for cost, default in zip(pred_costs, default_costs) if cost == float('inf')]
             pred_costs = [cost if cost != float('inf') else get_timeout_cost(default) for cost, default in zip(pred_costs, default_costs)]
             min_costs = [np.min(label).item() for label in labels]
             total_pred_cost = sum(pred_costs)
             total_min_cost = sum(min_costs)
             ability = total_min_cost / total_pred_cost
             writer.add_scalar('test/ability', ability, epoch)
-            print(f'Test ability: {ability * 100}%, pred time: {total_pred_cost / 1000}, min time: {total_min_cost / 1000}, timeout: {timeouts}', flush=True)
+            print(f'Test ability: {ability * 100}%, pred time: {total_pred_cost / 1000}, min time: {total_min_cost / 1000}, {len(timeout_costs)} timeouts: {[c / 1000 for c in timeout_costs]}', flush=True)
 
 def main(args: argparse.Namespace):
     dataset_regex = re.compile(r'([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)')
