@@ -7,7 +7,7 @@ import re
 import numpy as np
 import matplotlib.pyplot as plt
 
-epoch_pattern = re.compile(r'Epoch (\d+), loss: ([\d\.]+)\n')
+epoch_pattern = re.compile(r'Epoch (\d+), loss: ([-\d\.e]+)\n')
 test_pattern = re.compile(r'Test ability: ([\d\.]+)%, pred time: ([\d\.]+), min time: ([\d\.]+), (\d+) timeouts:.*')
 
 def read_output(path: str):
@@ -32,8 +32,8 @@ def read_output(path: str):
             abilities[epoch] = ability
             pred_times[epoch] = pred
             nums_timeout[epoch] = num_timeout
-            
-    return train_losses, abilities, pred_times, nums_timeout
+    print(epoch)
+    return train_losses[:epoch + 1], abilities[:epoch + 1], pred_times[:epoch + 1], nums_timeout[:epoch + 1]
 
 def read_outputs(pattern: str, seeds: list[int]):
     ret_train_losses = []
@@ -50,10 +50,26 @@ def read_outputs(pattern: str, seeds: list[int]):
     return np.stack(ret_train_losses), np.stack(ret_abilities), np.stack(ret_pred_times), np.stack(ret_nums_timeout)
 
 def plot_dir(base_dir: str, num_seeds: int):
-    _, abilities, _, _ = read_outputs(os.path.join(base_dir, 'output_{}.txt'), range(num_seeds))
+    train_loss, abilities, _, _ = read_outputs(os.path.join(base_dir, 'output_{}.txt'), range(num_seeds))
     num_seeds, num_epoch = abilities.shape
     abilities_mean = np.mean(abilities, axis=0)
     abilities_std = np.sqrt(np.sum((abilities - abilities_mean) ** 2, axis=0) / (num_seeds - 1))
+    train_loss_mean = np.mean(train_loss, axis=0)
+
+    fig, ax = plt.subplots(figsize=(8, 6), dpi=600)
+    ax.plot(np.arange(num_epoch) + 1, train_loss_mean, marker='o', linestyle='-', markersize=3, color='black')
+
+    ax.set_title('Mean Training Loss per Epoch')
+    ax.set_xlabel('Epoch')
+    ax.set_xlim(1, 100)
+    ax.set_ylabel('Mean Training Loss')
+    ax.grid(True)
+
+    # Tight layout for better spacing
+    fig.tight_layout()
+
+    # Save the figure
+    fig.savefig(os.path.join(base_dir, 'train_losses.png'))
 
     fig, ax = plt.subplots(figsize=(8, 6), dpi=600)
     ax.plot(np.arange(num_epoch) + 1, abilities_mean, marker='o', linestyle='-', markersize=3, color='black', label='Mean Ability')
@@ -61,7 +77,9 @@ def plot_dir(base_dir: str, num_seeds: int):
 
     ax.set_title('Mean Ability per Epoch')
     ax.set_xlabel('Epoch')
+    ax.set_xlim(1, 100)
     ax.set_ylabel('Mean Ability (%)')
+    ax.set_ylim(45, 100)
     ax.grid(True)
     ax.legend()
 
