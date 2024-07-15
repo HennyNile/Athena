@@ -145,6 +145,6 @@ class Lero:
         for rel in relations:
             arr[self.rel_offset + self.input_relations[rel]] += 1.
         arr[self.width_offset] = node['Plan Width']
-        arr[self.width_offset] = self._norm_width(node['Plan Width'])
+        # arr[self.width_offset] = self._norm_width(node['Plan Width'])
         arr[self.rows_offset] = self._norm_est_card(node['Plan Rows'])
         return arr
