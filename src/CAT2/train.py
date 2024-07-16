@@ -58,6 +58,11 @@ class PlanDataset(Dataset):
         else:
             return Input.load(os.path.join(self.tmp_dir, f'{idx}.pt'))
 
+def tailr_loss_with_logits(input: torch.Tensor, target: torch.Tensor, weight: torch.Tensor, gamma: float = 0.1):
+    pos = -torch.log(gamma + (1 - gamma) * torch.sigmoid(input))
+    neg = -torch.log(gamma + (1 - gamma) * (1 - torch.sigmoid(input)))
+    return torch.mean(weight * (target * pos + (1 - target) * neg)) / (1 - gamma)
+
 def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epochs, lr_scheduler=None):
     model.model.cuda()
     for epoch in range(num_epochs):
@@ -79,15 +84,14 @@ def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epo
             cards_losses.append(cards_loss.item())
             pred = cost.view(-1, 2)
             label = input.cost.view(-1, 2)
-            cost_weight = (label / label.sum(dim=1, keepdim=True)).nan_to_num(1.)
-            cost_weight = torch.abs(cost_weight[:, 0] - cost_weight[:, 1])
+            exe_time = input.exe_time.view(-1, 2)
+            cost_weight = torch.abs(exe_time[:, 0] - exe_time[:, 1])
             cost_weight = cost_weight / cost_weight.sum()
             pred  = pred[:,0] - pred[:,1]
             label = (label[:,0] > label[:,1]).float()
-            cost_loss = F.binary_cross_entropy_with_logits(pred, label, cost_weight, reduction='sum')
-            # cost_loss = ((label / label.sum(dim=1, keepdim=True)).nan_to_num(1.) * pred.softmax(dim=1)).sum()
+            cost_loss = tailr_loss_with_logits(pred, label, cost_weight, gamma=0.9)
             cost_losses.append(cost_loss.item())
-            loss = 1000 * cards_loss + cost_loss
+            loss = 0.01 * cards_loss + cost_loss
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
