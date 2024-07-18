@@ -497,14 +497,15 @@ class Node:
         self.card = card
 
 class Sample:
-    def __init__(self, tokens: list[tuple[int, float]], nodes: list[Node], cost: float, weight: float = 1.) -> None:
+    def __init__(self, tokens: list[tuple[int, float]], nodes: list[Node], cost: float, exe_time: float, weight: float = 1.) -> None:
         self.tokens = tokens
         self.nodes = nodes
         self.cost = cost
+        self.exe_time = exe_time
         self.weight = weight
 
 class Input:
-    def __init__(self, x: torch.Tensor, pos: torch.Tensor, mask: torch.Tensor, node_pos: torch.Tensor, node_mask: torch.Tensor, output_idx: torch.Tensor, cards: torch.Tensor, cost: float|torch.Tensor, weight: float|torch.Tensor) -> None:
+    def __init__(self, x: torch.Tensor, pos: torch.Tensor, mask: torch.Tensor, node_pos: torch.Tensor, node_mask: torch.Tensor, output_idx: torch.Tensor, cards: torch.Tensor, cost: float|torch.Tensor, exe_time: float|torch.Tensor, weight: float|torch.Tensor) -> None:
         self.x = x
         self.pos = pos
         self.mask = mask
@@ -513,6 +514,7 @@ class Input:
         self.output_idx = output_idx
         self.cards = cards
         self.cost = cost
+        self.exe_time = exe_time
         self.weight = weight
 
     def cuda(self) -> 'Input':
@@ -527,11 +529,15 @@ class Input:
             cost_cuda = self.cost.cuda()
         else:
             cost_cuda = self.cost
+        if type(self.exe_time) == torch.Tensor:
+            exe_time_cuda = self.exe_time.cuda()
+        else:
+            exe_time_cuda = self.exe_time
         if type(self.weight) == torch.Tensor:
             weight_cuda = self.weight.cuda()
         else:
             weight_cuda = self.weight
-        return Input(x_cuda, pos_cuda, mask_cuda, node_pos_cuda, node_mask_cuda, output_idx_cuda, cards_cuda, cost_cuda, weight_cuda)
+        return Input(x_cuda, pos_cuda, mask_cuda, node_pos_cuda, node_mask_cuda, output_idx_cuda, cards_cuda, cost_cuda, exe_time_cuda, weight_cuda)
     
     def save(self, path: str) -> None:
         obj = {
@@ -543,6 +549,7 @@ class Input:
             "output_idx": self.output_idx,
             "cards": self.cards,
             "cost": self.cost,
+            "exe_time": self.exe_time,
             "weight": self.weight
         }
         torch.save(obj, path)
@@ -550,7 +557,7 @@ class Input:
     @staticmethod
     def load(path: str) -> 'Input':
         obj = torch.load(path)
-        return Input(obj["x"], obj["pos"], obj["mask"], obj["node_pos"], obj["node_mask"], obj["output_idx"], obj["cards"], obj["cost"], obj["weight"])
+        return Input(obj["x"], obj["pos"], obj["mask"], obj["node_pos"], obj["node_mask"], obj["output_idx"], obj["cards"], obj["cost"], obj["exe_time"], obj["weight"])
 
 class Cat:
     def __init__(self, db_info: DBInfo):
@@ -659,7 +666,7 @@ class Cat:
             node_mask[node_idx].fill_(-torch.inf)
             node_mask[node_idx, node.node_begin:node.node_end] = 0.
             output_idx[node_idx] = node.token_begin
-        return Input(x, pos, mask, node_pos, node_mask, output_idx, cards, cost, weight)
+        return Input(x, pos, mask, node_pos, node_mask, output_idx, cards, cost, sample.exe_time, weight)
 
     def batch_transformed_samples(self, inputs: list[Input]):
         batch_size = len(inputs)
@@ -673,6 +680,7 @@ class Cat:
         ret_output_idx = torch.zeros(batch_size, max_node_len, dtype=torch.long)
         ret_cards = torch.zeros(batch_size, max_node_len, dtype=torch.float32)
         ret_cost = torch.tensor([input.cost for input in inputs], dtype=torch.float32)
+        ret_exe_time = torch.tensor([input.exe_time for input in inputs], dtype=torch.float32)
         ret_weight = torch.tensor([input.weight for input in inputs], dtype=torch.float32)
 
         for idx, input in enumerate(inputs):
@@ -686,7 +694,7 @@ class Cat:
             ret_output_idx[idx, :input.output_idx.shape[0]] = input.output_idx
             ret_cards[idx, :input.cards.shape[0]] = input.cards
 
-        return Input(ret_x, ret_pos, ret_mask, ret_node_pos, ret_node_mask, ret_output_idx, ret_cards, ret_cost, ret_weight)
+        return Input(ret_x, ret_pos, ret_mask, ret_node_pos, ret_node_mask, ret_output_idx, ret_cards, ret_cost, ret_exe_time, ret_weight)
 
     def transform_samples(self, batch: list[Sample]):
         inputs = [self.transform_sample(sample) for sample in batch]
@@ -890,4 +898,4 @@ class Cat:
 
         dfs(root)
 
-        return Sample(tokens, nodes, plan.get('Execution Time', float('inf')), weight)
+        return Sample(tokens, nodes, plan.get('Execution Time', float('inf')), plan['Execution Time'] if 'Execution Time' in plan else plan['Timeout Time'], weight)

@@ -8,11 +8,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 epoch_pattern = re.compile(r'Epoch (\d+), loss: ([-\d\.e]+)\n')
+epoch_pattern2 = re.compile(r'Epoch (\d+), cards_loss: ([-\d\.e]+), cost_loss: ([-\d\.e]+)\n')
 test_pattern = re.compile(r'Test ability: ([\d\.]+)%, pred time: ([\d\.]+), min time: ([\d\.]+), (\d+) timeouts:.*')
 
 def read_output(path: str):
     with open(path, 'r') as f:
         lines = f.readlines()
+    train_cards_losses = np.zeros(100, dtype=np.float32)
     train_losses = np.zeros(100, dtype=np.float32)
     abilities = np.zeros(100, dtype=np.float32)
     pred_times = np.zeros(100, np.float32)
@@ -24,6 +26,15 @@ def read_output(path: str):
             epoch, train_loss = result.groups()
             epoch = int(epoch)
             train_loss = float(train_loss)
+            train_losses[epoch] = train_loss
+            continue
+        result = epoch_pattern2.match(line)
+        if result is not None:
+            epoch, train_cards_loss, train_cost_loss = result.groups()
+            epoch = int(epoch)
+            train_cards_loss = float(train_cards_loss)
+            train_cards_losses[epoch] = train_cards_loss
+            train_loss = float(train_cost_loss)
             train_losses[epoch] = train_loss
             continue
         result = test_pattern.match(line)
