@@ -67,6 +67,7 @@ def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epo
         model.model.eval()
         losses = []
         pred_costs = []
+        timeout_costs = []
         min_costs = []
         for trees, cost_label, weights in tqdm(val_dataloader):
             cost = model.model(trees)
@@ -74,14 +75,24 @@ def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epo
             argmin_pred = torch.argmin(pred)
             pred_cost = cost_label[argmin_pred]
             min_cost = torch.min(cost_label)
-            pred_costs.append(pred_cost.item())
+            if pred_cost.item() == float('inf'):
+                default = cost_label[0].item()
+                timeout_cost = 4 * default
+                if timeout_cost >= 240000:
+                    timeout_cost = max(default, 240000)
+                elif timeout_cost <= 5000:
+                    timeout_cost = 5000
+                pred_costs.append(timeout_cost)
+                timeout_costs.append(timeout_cost)
+            else:
+                pred_costs.append(pred_cost.item())
             min_costs.append(min_cost.item())
         if len(pred_costs) != 0:
             total_pred_cost = sum(pred_costs)
             total_min_cost = sum(min_costs)
             ability = total_min_cost / total_pred_cost
             writer.add_scalar('val/ability', ability, epoch)
-            print(f'Validation ability: {ability * 100}%', flush=True)
+            print(f'Validation ability: {ability * 100}%, pred time: {total_pred_cost / 1000}, min time: {total_min_cost / 1000}, {len(timeout_costs)} timeouts: {[c / 1000 for c in timeout_costs]}', flush=True)
 
         if test_dataloader is not None:
             losses = []
@@ -144,6 +155,12 @@ def main(args: argparse.Namespace):
 
     dataloader = DataLoader(train_dataset, batch_sampler=pairwise_sampler, collate_fn=model._transform_samples)
     val_dataloader = DataLoader(val_dataset, batch_sampler=val_sampler, collate_fn=model._transform_samples)
+    if args.val != '':
+        _, val_queries = read_dataset(os.path.join('datasets', args.val))
+        val_dataset = PlanDataset(val_queries, model)
+        val_sampler = QuerySampler(val_queries)
+        val_dataloader = DataLoader(val_dataset, batch_sampler=val_sampler, collate_fn=model._transform_samples)
+
     if args.test != '':
         _, test_queries = read_dataset(os.path.join('datasets', args.test))
         test_dataset = PlanDataset(test_queries, model)
@@ -159,6 +176,7 @@ def main(args: argparse.Namespace):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='imdb/JOB/Bao')
+    parser.add_argument('--val', type=str, default='')
     parser.add_argument('--test', type=str, default='')
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--epoch', type=int, default=100)
