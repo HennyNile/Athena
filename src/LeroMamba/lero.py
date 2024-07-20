@@ -11,7 +11,6 @@ from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter()
 import numpy as np
 
-from TreeConvolution.util import prepare_trees
 from lero_model import LeroNet
 
 SCAN_TYPES = ["Seq Scan", "Index Scan", "Index Only Scan", 'Bitmap Heap Scan']

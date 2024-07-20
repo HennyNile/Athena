@@ -41,7 +41,7 @@ def tailr_loss_with_logits(input: torch.Tensor, target: torch.Tensor, weight: to
     neg = -torch.log(gamma + (1 - gamma) * (1 - torch.sigmoid(input)))
     return torch.mean(weight * (target * pos + (1 - target) * neg)) / (1 - gamma)
 
-def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epochs):
+def train(model, optimizer, scheduler, dataloader, val_dataloader, test_dataloader, num_epochs):
     for epoch in range(num_epochs):
         model.model.cuda()
         model.model.train()
@@ -60,6 +60,8 @@ def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epo
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+        model.save(f'mamba_{epoch}.pt')
+        scheduler.step()
         loss = sum(losses) / len(losses)
         writer.add_scalar('train/cost_loss', loss, epoch)
         print(f'Epoch {epoch}, loss: {loss}')
@@ -168,8 +170,14 @@ def main(args: argparse.Namespace):
         test_dataloader = DataLoader(test_dataset, batch_sampler=test_sampler, collate_fn=model._transform_samples)
     else:
         test_dataloader = None
-    optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-4)
-    train(model, optimizer, dataloader, val_dataloader, test_dataloader, args.epoch)
+    optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-1)
+    def lr_lambda(epoch):
+        if epoch < 15:
+            return 1
+        else:
+            return 0.1
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
+    train(model, optimizer, scheduler, dataloader, val_dataloader, test_dataloader, args.epoch)
     os.makedirs('models', exist_ok=True)
     model.save(f'models/lero_on_{database}_{workload}_{method}_{args.valset.split(".")[0]}.pth')
 
