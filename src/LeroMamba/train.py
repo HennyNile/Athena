@@ -174,7 +174,7 @@ def main(args: argparse.Namespace):
         test_dataloader = DataLoader(test_dataset, batch_sampler=test_sampler, collate_fn=model._transform_samples)
     else:
         test_dataloader = None
-    optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-3)
+    optimizer = torch.optim.Adam(model.model.parameters(), lr=args.lr)
     train(model, optimizer, None, dataloader, val_dataloader, test_dataloader, args.epoch)
     os.makedirs('models', exist_ok=True)
     model.save(f'models/lero_on_{database}_{workload}_{method}_{args.valset.split(".")[0]}.pth')
@@ -188,6 +188,7 @@ if __name__ == '__main__':
     parser.add_argument('--epoch', type=int, default=100)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--valset', type=str, default='val.json')
+    parser.add_argument('--lr', type=float, default=1e-3)
     args = parser.parse_args()
     seed = args.seed
     random.seed(seed)
