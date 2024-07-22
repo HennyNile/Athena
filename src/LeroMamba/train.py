@@ -36,10 +36,13 @@ class PlanDataset(Dataset):
     def __getitem__(self, idx):
         return self.samples[idx]
 
-def tailr_loss_with_logits(input: torch.Tensor, target: torch.Tensor, weight: torch.Tensor, gamma: float = 0.1):
+def tailr_loss_with_logits(input: torch.Tensor, target: torch.Tensor, weight: torch.Tensor|None = None, gamma: float = 0.1):
     pos = -torch.log(gamma + (1 - gamma) * torch.sigmoid(input))
     neg = -torch.log(gamma + (1 - gamma) * (1 - torch.sigmoid(input)))
-    return torch.mean(weight * (target * pos + (1 - target) * neg)) / (1 - gamma)
+    if weight is not None:
+        return torch.sum(weight * (target * pos + (1 - target) * neg)) / (1 - gamma)
+    else:
+        return torch.mean(target * pos + (1 - target) * neg) / (1 - gamma)
 
 def train(model, optimizer, scheduler, dataloader, val_dataloader, test_dataloader, num_epochs):
     for epoch in range(num_epochs):
