@@ -12,9 +12,9 @@ WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)', '(story
   AND it1.info = 'countries'
   AND it2.info = 'votes'
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime')
-  AND TRUE
+  
   AND n.gender = 'f'
-  AND TRUE
+  
   AND t.production_year BETWEEN 1934 AND 2007
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id

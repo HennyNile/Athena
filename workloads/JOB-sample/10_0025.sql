@@ -10,13 +10,13 @@ FROM company_name AS cn,
      movie_link AS ml,
      title AS t
 WHERE cn.country_code != '[jp]'
-  AND TRUE
+  
   AND ct.kind = 'production companies'
   AND k.keyword = 'hospital'
-  AND TRUE
+  
   AND mc.note IS NULL
   AND t.production_year <= 1982
-  AND TRUE
+  
   AND lt.id = ml.link_type_id
   AND ml.movie_id = t.id
   AND t.id = mk.movie_id

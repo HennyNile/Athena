@@ -5,10 +5,10 @@ FROM company_type AS ct,
      movie_info AS mi,
      title AS t
 WHERE ct.kind = 'distributors'
-  AND TRUE
+  
   AND mc.note LIKE '%(VHS)%'
-  AND TRUE
-  AND TRUE
+  
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish', 'Denmark', 'Drama', 'English', 'Family')
   AND t.production_year >= 1997
   AND t.id = mi.movie_id

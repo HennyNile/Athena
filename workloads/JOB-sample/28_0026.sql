@@ -30,7 +30,7 @@ WHERE cct1.kind = 'crew'
   AND n.gender = 'm'
   AND n.name LIKE 'Z%'
   AND rt.role = 'actor'
-  AND TRUE
+  
   AND t.production_year BETWEEN 1883 AND 1897
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id

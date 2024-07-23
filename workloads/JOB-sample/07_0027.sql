@@ -7,15 +7,14 @@ FROM aka_name AS an,
      name AS n,
      role_type AS rt,
      title AS t
-WHERE TRUE
-  AND cn.country_code = '[de]'
+WHERE cn.country_code = '[de]'
   AND mc.note LIKE '%(TV)%'
   AND mc.note NOT LIKE '%(theatrical)%'
-  AND TRUE
-  AND TRUE
+  
+  
   AND rt.role = 'writer'
   AND t.production_year BETWEEN 1899 AND 1960
-  AND TRUE
+  
   AND an.person_id = n.id
   AND n.id = ci.person_id
   AND ci.movie_id = t.id

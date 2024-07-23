@@ -30,7 +30,7 @@ WHERE cct1.kind = 'cast'
   AND n.gender = 'm'
   AND n.name LIKE '%Angel%'
   AND rt.role = 'costume designer'
-  AND TRUE
+  
   AND t.production_year <= 1956
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id

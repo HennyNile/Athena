@@ -15,7 +15,7 @@ WHERE cn.country_code = '[ru]'
   AND it.info = 'top 250 rank'
   AND it2.info = 'countries'
   AND kt.kind = 'movie'
-  AND TRUE
+  
   AND mi.movie_id = t.id
   AND it2.id = mi.info_type_id
   AND kt.id = t.kind_id

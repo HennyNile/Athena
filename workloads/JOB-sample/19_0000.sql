@@ -16,7 +16,7 @@ WHERE cct1.kind = 'cast'
        OR chn.name LIKE '%Man%')
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic', 'based-on-novel', 'blood', 'character-name-in-title', 'claw', 'computer-animated-movie', 'computer-animation')
   AND kt.kind = 'tv series'
-  AND TRUE
+  
   AND t.production_year BETWEEN 1887 AND 1974
   AND kt.id = t.kind_id
   AND t.id = mk.movie_id

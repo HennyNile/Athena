@@ -15,7 +15,7 @@ FROM aka_name AS an,
      title AS t
 WHERE ci.note IN ('(executive producer)', '(head writer)')
   AND cn.country_code = '[de]'
-  AND TRUE
+  
   AND it.info = 'top 250 rank'
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic')
   AND (mi.info LIKE 'Japan:%200%'
@@ -24,7 +24,7 @@ WHERE ci.note IN ('(executive producer)', '(head writer)')
   AND n.name LIKE '%Downey%Robert%'
   AND rt.role = 'costume designer' 
   AND t.production_year <= 1885
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id

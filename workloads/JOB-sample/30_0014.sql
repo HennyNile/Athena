@@ -18,11 +18,11 @@ WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)')
   AND it1.info = 'countries'
   AND it2.info = 'rating'
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic', 'based-on-novel', 'blood')
-  AND TRUE
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime')
-  AND TRUE
-  AND TRUE
-  AND TRUE
+  
+  
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id

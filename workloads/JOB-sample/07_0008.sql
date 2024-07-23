@@ -7,13 +7,12 @@ FROM aka_name AS an,
      name AS n,
      role_type AS rt,
      title AS t
-WHERE TRUE
-  AND cn.country_code = '[ru]'
-  AND TRUE
-  AND TRUE
+WHERE cn.country_code = '[ru]'
+  
+  
   AND rt.role = 'costume designer'
   AND t.production_year <= 1982
-  AND TRUE
+  
   AND an.person_id = n.id
   AND n.id = ci.person_id
   AND ci.movie_id = t.id

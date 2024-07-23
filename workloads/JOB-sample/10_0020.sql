@@ -14,10 +14,10 @@ WHERE cn.country_code != '[pl]'
        OR cn.name LIKE '%Warner%')
   AND ct.kind = 'production companies'
   AND k.keyword = 'based-on-comic'
-  AND TRUE
+  
   AND mc.note IS NULL
   AND t.production_year >= 1912
-  AND TRUE
+  
   AND lt.id = ml.link_type_id
   AND ml.movie_id = t.id
   AND t.id = mk.movie_id

@@ -11,13 +11,13 @@ FROM aka_name AS an,
      title AS t
 WHERE ci.note = '(voice: Japanese version)'
   AND cn.country_code = '[jp]'
-  AND TRUE
+  
   AND (mc.note LIKE '%(2006)%'
        OR mc.note NOT LIKE '%(Japan)%')
   AND n.gender = 'm'
   AND n.name LIKE '%B%'
   AND rt.role = 'actor'
-  AND TRUE
+  
   AND ci.movie_id = t.id
   AND t.id = mc.movie_id
   AND ci.movie_id = mc.movie_id

@@ -17,8 +17,8 @@ WHERE ci.note = '(voice) (uncredited)'
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic', 'based-on-novel', 'blood', 'character-name-in-title', 'claw')
   AND mi.info = 'Thriller'
   AND n.gender = 'm'
-  AND TRUE
-  AND TRUE
+  
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id

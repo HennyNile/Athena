@@ -12,9 +12,9 @@ WHERE cn.country_code = '[jp]'
   AND ct.kind = 'distributors'
   AND it1.info = 'budget'
   AND it2.info = 'top 250 rank'
-  AND TRUE
+  
   AND t.production_year >= 1979
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND mi.info_type_id = it1.id

@@ -7,7 +7,7 @@ FROM company_type AS ct,
 WHERE ct.kind = 'distributors'
   AND mc.note NOT LIKE '%(Japan)%'
   AND mc.note LIKE '%(2007)%'
-  AND TRUE
+  
   AND mc.note LIKE '%(1994)%'
   AND mi.info IN ('Action', 'American')
   AND t.production_year BETWEEN 1906 AND 1999

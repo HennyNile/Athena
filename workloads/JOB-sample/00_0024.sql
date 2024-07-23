@@ -9,7 +9,7 @@ FROM company_type AS ct,
 WHERE ct.kind = 'production companies'
   AND it.info = 'rating'
   AND mc.note NOT LIKE '%(Japan)%'
-  AND TRUE
+  
   AND t.production_year >= 1894
   AND ct.id = mc.company_type_id
   AND t.id = mc.movie_id

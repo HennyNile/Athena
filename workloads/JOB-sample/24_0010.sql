@@ -18,7 +18,7 @@ WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)')
   AND mi.info = 'Germany'
   AND n.gender = 'm'
   AND t.production_year BETWEEN 1920 AND 1996
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id

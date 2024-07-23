@@ -10,11 +10,11 @@ FROM aka_title AS at,
      movie_keyword AS mk,
      title AS t
 WHERE cn.country_code = '[nl]'
-  AND TRUE
+  
   AND it1.info = 'release dates'
-  AND TRUE
+  
   AND mi.note LIKE '%internet%'
-  AND TRUE
+  
   AND t.production_year BETWEEN 1976 AND 2012
   AND t.id = at.movie_id
   AND t.id = mi.movie_id

@@ -12,9 +12,9 @@ WHERE cn.country_code = '[us]'
   AND ct.kind IN ('distributors', 'production companies')
   AND it1.info = 'countries'
   AND it2.info = 'rating'
-  AND TRUE
+  
   AND t.production_year BETWEEN 1908 AND 1951
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND mi.info_type_id = it1.id

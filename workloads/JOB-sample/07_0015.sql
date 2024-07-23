@@ -7,12 +7,9 @@ FROM aka_name AS an,
      name AS n,
      role_type AS rt,
      title AS t
-WHERE TRUE
-  AND cn.country_code = '[de]'
+WHERE cn.country_code = '[de]'
   AND mc.note LIKE '%(1994)%'
   AND mc.note NOT LIKE '%(presents)%'
-  AND TRUE
-  AND TRUE
   AND rt.role = 'actress'
   AND t.production_year <= 1991
   AND t.title LIKE '%Movie%'

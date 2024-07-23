@@ -17,7 +17,7 @@ WHERE cn.country_code != '[sm]'
   AND lt.link LIKE '%follow%'
   AND mc.note IS NULL
   AND t.production_year BETWEEN 1940 AND 1992
-  AND TRUE
+  
   AND lt.id = ml.link_type_id
   AND ml.movie_id = t.id
   AND t.id = mk.movie_id

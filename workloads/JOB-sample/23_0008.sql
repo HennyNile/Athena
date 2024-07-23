@@ -24,7 +24,7 @@ WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)', '(story
   AND n.name LIKE '%Tim%'
   AND rt.role = 'costume designer' 
   AND t.production_year BETWEEN 1931 AND 1962
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id

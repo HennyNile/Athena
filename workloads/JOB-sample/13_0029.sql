@@ -15,7 +15,7 @@ WHERE it1.info = 'genres'
   AND mi.info = 'Western'
   AND mi_idx.info BETWEEN '3.0' AND '5.0'
   AND t.production_year >= 1939
-  AND TRUE
+  
   AND kt.id = t.kind_id
   AND t.id = mi.movie_id
   AND t.id = mk.movie_id

@@ -17,7 +17,7 @@ WHERE cn.country_code != '[pl]'
   AND it2.info = 'votes'
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic', 'based-on-novel')
   AND kt.kind = 'tv movie'
-  AND TRUE
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish', 'Denmark', 'Drama', 'English', 'Family', 'German')
   AND mi_idx.info <= '3.0'
   AND t.production_year BETWEEN 1989 AND 1993

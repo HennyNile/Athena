@@ -7,8 +7,7 @@ FROM cast_info AS ci,
      movie_keyword AS mk,
      name AS n,
      title AS t
-WHERE TRUE
-  AND k.keyword = 'female-nudity'
+WHERE k.keyword = 'female-nudity'
   AND n.name LIKE '%Yo%'
   AND n.id = ci.person_id
   AND ci.movie_id = t.id

@@ -20,7 +20,7 @@ WHERE cct1.kind = 'crew'
   AND it2.info = 'rating'
   AND k.keyword = 'violence'
   AND kt.kind = 'movie'
-  AND TRUE
+  
   AND t.production_year BETWEEN 1970 AND 2003
   AND kt.id = t.kind_id
   AND t.id = mk.movie_id

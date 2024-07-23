@@ -13,13 +13,13 @@ FROM aka_name AS an,
 WHERE ci.note = '(voice) (uncredited)'
   AND cn.country_code = '[us]'
   AND it.info = 'budget'
-  AND TRUE
-  AND TRUE
+  
+  
   AND n.gender = 'm'
-  AND TRUE
+  
   AND rt.role = 'actor'
   AND t.production_year >= 1997
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id

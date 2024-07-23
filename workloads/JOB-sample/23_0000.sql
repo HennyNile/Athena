@@ -15,7 +15,7 @@ FROM aka_name AS an,
      title AS t
 WHERE ci.note = '(voice)'
   AND cn.country_code = '[nl]'
-  AND TRUE
+  
   AND it.info = 'release dates'
   AND k.keyword = 'death'
   AND mi.info LIKE 'USA:% 200%'
@@ -23,7 +23,7 @@ WHERE ci.note = '(voice)'
   AND n.name LIKE '%Tim%'
   AND rt.role = 'actor' 
   AND t.production_year >= 1955
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id

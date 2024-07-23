@@ -12,7 +12,7 @@ FROM aka_title AS at,
 WHERE cn.country_code = '[us]'
   AND cn.name = 'YouTube'
   AND it1.info = 'release dates'
-  AND TRUE
+  
   AND mi.note LIKE '%internet%'
   AND mi.info LIKE 'USA:% 200%'
   AND t.production_year >= 1986

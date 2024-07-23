@@ -23,7 +23,7 @@ WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)')
   AND n.name LIKE 'A%'
   AND rt.role = 'actress' 
   AND t.production_year >= 1945
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id

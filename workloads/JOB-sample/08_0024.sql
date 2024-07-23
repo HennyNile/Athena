@@ -15,9 +15,9 @@ WHERE ci.note = '(voice: English version)'
   AND (mc.note LIKE '%(France)%'
        OR mc.note NOT LIKE '%(presents)%')
   AND n.gender = 'm'
-  AND TRUE
+  
   AND rt.role = 'actress'
-  AND TRUE
+  
   AND ci.movie_id = t.id
   AND t.id = mc.movie_id
   AND ci.movie_id = mc.movie_id

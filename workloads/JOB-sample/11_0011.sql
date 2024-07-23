@@ -12,7 +12,7 @@ WHERE cn.country_code = '[us]'
   AND ct.kind IN ('distributors', 'production companies')
   AND it1.info = 'genres'
   AND it2.info = 'rating'
-  AND TRUE
+  
   AND t.production_year BETWEEN 1885 AND 1916
   AND (t.title LIKE '%Champion%'
        OR t.title LIKE '%Freddy%')

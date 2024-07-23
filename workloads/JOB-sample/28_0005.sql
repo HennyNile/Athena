@@ -20,7 +20,7 @@ FROM aka_name AS an,
      title AS t
 WHERE cct1.kind = 'crew'
   AND cct2.kind = 'cast'
-  AND TRUE
+  
   AND ci.note = '(written by)'
   AND cn.country_code = '[de]'
   AND it.info = 'release dates'
@@ -31,7 +31,7 @@ WHERE cct1.kind = 'crew'
   AND n.gender = 'f'
   AND n.name LIKE 'B%'
   AND rt.role = 'actress'
-  AND TRUE
+  
   AND t.production_year >= 1916
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id

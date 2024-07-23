@@ -14,12 +14,12 @@ WHERE ci.note = '(voice: English version)'
   AND cn.country_code = '[us]'
   AND it.info = 'genres'
   AND mc.note LIKE '%(theatrical)%'
-  AND TRUE
+  
   AND n.gender = 'm'
-  AND TRUE
+  
   AND rt.role = 'actor'
   AND t.production_year >= 1895
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id

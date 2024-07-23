@@ -20,7 +20,7 @@ FROM aka_name AS an,
      title AS t
 WHERE cct1.kind = 'crew'
   AND cct2.kind = 'cast'
-  AND TRUE
+  
   AND ci.note = '(story editor)'
   AND cn.country_code = '[jp]'
   AND it.info = 'bottom 10 rank'
@@ -31,7 +31,7 @@ WHERE cct1.kind = 'crew'
   AND n.gender = 'f'
   AND n.name LIKE 'A%'
   AND rt.role = 'writer'
-  AND TRUE
+  
   AND t.production_year <= 1943
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id

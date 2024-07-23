@@ -18,11 +18,11 @@ WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)')
   AND it1.info = 'genres'
   AND it2.info = 'votes'
   AND k.keyword = 'character-name-in-title'
-  AND TRUE
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish', 'Denmark')
   AND n.gender = 'm'
   AND t.production_year >= 1931
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id

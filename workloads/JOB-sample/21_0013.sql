@@ -17,7 +17,7 @@ WHERE cn.country_code != '[ru]'
   AND it2.info = 'rating'
   AND k.keyword = 'death'
   AND kt.kind IN ('episode', 'movie')
-  AND TRUE
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria')
   AND mi_idx.info <= '6.5'
   AND t.production_year BETWEEN 1971 AND 1974

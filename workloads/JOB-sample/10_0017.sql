@@ -13,10 +13,10 @@ WHERE cn.country_code != '[nl]'
   AND cn.name LIKE '20th Century Fox%'
   AND ct.kind = 'production companies'
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic')
-  AND TRUE
+  
   AND mc.note IS NULL
   AND t.production_year >= 1896
-  AND TRUE
+  
   AND lt.id = ml.link_type_id
   AND ml.movie_id = t.id
   AND t.id = mk.movie_id

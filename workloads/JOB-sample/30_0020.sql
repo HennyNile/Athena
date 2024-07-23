@@ -18,10 +18,10 @@ WHERE ci.note IN ('(executive producer)', '(head writer)')
   AND it1.info = 'genres'
   AND it2.info = 'rating'
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic', 'based-on-novel', 'blood')
-  AND TRUE
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria')
   AND n.gender = 'm'
-  AND TRUE
+  
   AND (t.title LIKE '%Champion%'
        OR t.title LIKE '%Freddy%')
   AND t.id = mi.movie_id

@@ -10,7 +10,7 @@ FROM aka_name AS an,
      title AS t
 WHERE cn.country_code = '[de]'
   AND k.keyword = 'female-nudity'
-  AND TRUE
+  
   AND an.person_id = n.id
   AND n.id = ci.person_id
   AND ci.movie_id = t.id

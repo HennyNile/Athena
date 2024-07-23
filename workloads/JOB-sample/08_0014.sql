@@ -12,7 +12,7 @@ FROM aka_name AS an,
 WHERE ci.note = '(voice: Japanese version)'
   AND cn.country_code = '[us]'
   AND mc.note IS NOT NULL
-  AND TRUE
+  
   AND n.gender = 'm'
   AND n.name LIKE '%B%'
   AND rt.role = 'actor'

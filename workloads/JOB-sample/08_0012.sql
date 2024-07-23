@@ -15,9 +15,9 @@ WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)', '(story
   AND (mc.note LIKE '%(as Metro-Goldwyn-Mayer Pictures)%'
        OR mc.note NOT LIKE '%(co-production)%')
   AND n.gender = 'm'
-  AND TRUE
+  
   AND rt.role = 'actor'
-  AND TRUE
+  
   AND ci.movie_id = t.id
   AND t.id = mc.movie_id
   AND ci.movie_id = mc.movie_id

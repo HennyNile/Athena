@@ -7,7 +7,7 @@ FROM company_type AS ct,
 WHERE ct.kind = 'distributors'
   AND mc.note NOT LIKE '%(200%)%'
   AND mc.note LIKE '%(theatrical)%'
-  AND TRUE
+  
   AND mc.note LIKE '%(VHS)%'
   AND mi.info IN ('Action', 'American', 'Bulgaria')
   AND t.production_year BETWEEN 1892 AND 2010

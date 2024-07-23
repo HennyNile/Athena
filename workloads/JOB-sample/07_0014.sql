@@ -9,12 +9,12 @@ FROM aka_name AS an,
      title AS t
 WHERE ci.note = '(voice: English version)'
   AND cn.country_code = '[nl]'
-  AND TRUE
+  
   AND n.name LIKE '%Yu%'
   AND n.name NOT LIKE 'Z%'
   AND rt.role = 'actor'
-  AND TRUE
-  AND TRUE
+  
+  
   AND an.person_id = n.id
   AND n.id = ci.person_id
   AND ci.movie_id = t.id

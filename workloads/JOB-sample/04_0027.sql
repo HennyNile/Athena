@@ -5,9 +5,9 @@ FROM company_type AS ct,
      movie_info AS mi,
      title AS t
 WHERE ct.kind = 'distributors'
-  AND TRUE
+  
   AND mc.note LIKE '%(theatrical)%'
-  AND TRUE
+  
   AND mc.note LIKE '%(VHS)%'
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime')
   AND t.production_year >= 1957

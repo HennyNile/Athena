@@ -5,10 +5,10 @@ FROM company_type AS ct,
      movie_info AS mi,
      title AS t
 WHERE ct.kind = 'distributors'
-  AND TRUE
+  
   AND mc.note LIKE '%(theatrical)%'
   AND mc.note LIKE '%(worldwide)%'
-  AND TRUE
+  
   AND mi.info = 'Sci-Fi'
   AND t.production_year BETWEEN 1923 AND 1955
   AND t.id = mi.movie_id

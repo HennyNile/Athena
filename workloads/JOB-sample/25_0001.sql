@@ -20,7 +20,7 @@ WHERE cct1.kind = 'cast'
   AND it2.info = 'rating'
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic', 'based-on-novel')
   AND kt.kind = 'tv series'
-  AND TRUE
+  
   AND t.production_year >= 1990
   AND kt.id = t.kind_id
   AND t.id = mk.movie_id

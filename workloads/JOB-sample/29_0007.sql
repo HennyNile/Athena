@@ -23,7 +23,7 @@ WHERE cct1.kind = 'crew'
   AND mi.info = 'USA'
   AND n.gender = 'm'
   AND t.production_year >= 1992
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id

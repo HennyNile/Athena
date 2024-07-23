@@ -7,16 +7,15 @@ FROM aka_name AS an,
      name AS n,
      role_type AS rt,
      title AS t
-WHERE TRUE
-  AND cn.country_code = '[us]'
+WHERE cn.country_code = '[us]'
   AND mc.note LIKE '%(200%)%'
   AND mc.note NOT LIKE '%(worldwide)%'
-  AND TRUE
+  
   AND n.name LIKE '%Tim%'
   AND n.name NOT LIKE '%Ang%'
   AND rt.role = 'writer'
   AND t.production_year <= 1926
-  AND TRUE
+  
   AND an.person_id = n.id
   AND n.id = ci.person_id
   AND ci.movie_id = t.id

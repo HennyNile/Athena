@@ -15,7 +15,7 @@ WHERE it1.info = 'genres'
   AND mi.info = 'Drama'
   AND mi_idx.info <= '2.0'
   AND t.production_year >= 2003
-  AND TRUE
+  
   AND kt.id = t.kind_id
   AND t.id = mi.movie_id
   AND t.id = mk.movie_id

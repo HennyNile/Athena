@@ -23,7 +23,7 @@ WHERE ci.note = '(written by)'
   AND n.name LIKE '%Downey%Robert%'
   AND rt.role = 'costume designer' 
   AND t.production_year BETWEEN 1886 AND 1939
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id

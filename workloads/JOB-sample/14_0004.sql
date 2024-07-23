@@ -10,7 +10,7 @@ FROM aka_title AS at,
      movie_keyword AS mk,
      title AS t
 WHERE cn.country_code = '[jp]'
-  AND TRUE
+  
   AND it1.info = 'release dates'
   AND mc.note LIKE '%(2007)%'
   AND mc.note LIKE '%(Japan)%'

@@ -10,13 +10,13 @@ FROM company_name AS cn,
      movie_link AS ml,
      title AS t
 WHERE cn.country_code != '[sm]'
-  AND TRUE
+  
   AND ct.kind = 'production companies'
   AND k.keyword = 'character-name-in-title'
   AND lt.link LIKE '%follow%'
   AND mc.note IS NULL
   AND t.production_year BETWEEN 1894 AND 1971
-  AND TRUE
+  
   AND lt.id = ml.link_type_id
   AND ml.movie_id = t.id
   AND t.id = mk.movie_id

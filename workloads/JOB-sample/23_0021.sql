@@ -15,7 +15,7 @@ FROM aka_name AS an,
      title AS t
 WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)', '(story editor)')
   AND cn.country_code = '[de]'
-  AND TRUE
+  
   AND it.info = 'trivia'
   AND k.keyword = 'gore'
   AND mi.info LIKE 'Japan:%200%'

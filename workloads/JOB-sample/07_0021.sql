@@ -7,15 +7,14 @@ FROM aka_name AS an,
      name AS n,
      role_type AS rt,
      title AS t
-WHERE TRUE
-  AND cn.country_code = '[jp]'
+WHERE cn.country_code = '[jp]'
   AND mc.note LIKE '%(1994)%'
   AND mc.note NOT LIKE '%(as Metro-Goldwyn-Mayer Pictures)%'
-  AND TRUE
-  AND TRUE
+  
+  
   AND rt.role = 'writer'
-  AND TRUE
-  AND TRUE
+  
+  
   AND an.person_id = n.id
   AND n.id = ci.person_id
   AND ci.movie_id = t.id

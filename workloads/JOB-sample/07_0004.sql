@@ -7,12 +7,11 @@ FROM aka_name AS an,
      name AS n,
      role_type AS rt,
      title AS t
-WHERE TRUE
-  AND cn.country_code = '[us]'
+WHERE cn.country_code = '[us]'
   AND mc.note LIKE '%(theatrical)%'
   AND mc.note NOT LIKE '%(as Metro-Goldwyn-Mayer Pictures)%'
-  AND TRUE
-  AND TRUE
+  
+  
   AND rt.role = 'actress'
   AND t.production_year >= 1894
   AND (t.title LIKE '%Champion%'

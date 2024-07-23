@@ -7,10 +7,7 @@ FROM aka_name AS an,
      name AS n,
      role_type AS rt,
      title AS t
-WHERE TRUE
-  AND cn.country_code = '[nl]'
-  AND TRUE
-  AND TRUE
+WHERE cn.country_code = '[nl]'
   AND rt.role = 'writer'
   AND t.production_year >= 1921
   AND (t.title LIKE '%Champion%'

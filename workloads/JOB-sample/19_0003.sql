@@ -16,7 +16,7 @@ WHERE cct1.kind = 'cast'
        OR chn.name LIKE '%Man%')
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic', 'based-on-novel', 'blood')
   AND kt.kind = 'video game'
-  AND TRUE
+  
   AND t.production_year BETWEEN 1991 AND 2000
   AND kt.id = t.kind_id
   AND t.id = mk.movie_id

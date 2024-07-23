@@ -18,7 +18,7 @@ WHERE ci.note IN ('(executive producer)', '(head writer)')
   AND mi.info IN ('Action', 'American', 'Bulgaria')
   AND n.gender = 'f'
   AND t.production_year >= 1927
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id

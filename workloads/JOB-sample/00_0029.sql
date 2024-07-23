@@ -9,8 +9,8 @@ FROM company_type AS ct,
 WHERE ct.kind = 'distributors'
   AND it.info = 'bottom 10 rank'
   AND mc.note NOT LIKE '%(France)%'
-  AND TRUE
-  AND TRUE
+  
+  
   AND ct.id = mc.company_type_id
   AND t.id = mc.movie_id
   AND t.id = mi_idx.movie_id

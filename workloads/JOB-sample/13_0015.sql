@@ -15,7 +15,7 @@ WHERE it1.info = 'genres'
   AND mi.info IN ('Action', 'American')
   AND mi_idx.info >= '8.0'
   AND t.production_year BETWEEN 1933 AND 2016
-  AND TRUE
+  
   AND kt.id = t.kind_id
   AND t.id = mi.movie_id
   AND t.id = mk.movie_id

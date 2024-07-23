@@ -9,7 +9,7 @@ FROM company_type AS ct,
 WHERE ct.kind = 'distributors'
   AND it.info = 'top 250 rank'
   AND mc.note NOT LIKE '%(presents)%'
-  AND TRUE
+  
   AND t.production_year >= 1989
   AND ct.id = mc.company_type_id
   AND t.id = mc.movie_id

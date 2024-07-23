@@ -20,9 +20,9 @@ WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)')
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic')
   AND mc.note LIKE '%(2006)%'
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime')
-  AND TRUE
+  
   AND t.production_year <= 1972
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id

@@ -20,7 +20,7 @@ FROM aka_name AS an,
      title AS t
 WHERE cct1.kind = 'crew'
   AND cct2.kind = 'complete+verified'
-  AND TRUE
+  
   AND ci.note IN ('(executive producer)', '(head writer)', '(producer)', '(story editor)')
   AND cn.country_code = '[nl]'
   AND it.info = 'bottom 10 rank'
@@ -31,7 +31,7 @@ WHERE cct1.kind = 'crew'
   AND n.gender = 'm'
   AND n.name LIKE '%Yo%'
   AND rt.role = 'costume designer'
-  AND TRUE
+  
   AND t.production_year <= 2007
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id

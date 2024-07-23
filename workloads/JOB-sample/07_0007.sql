@@ -9,10 +9,10 @@ FROM aka_name AS an,
      title AS t
 WHERE ci.note = '(voice)'
   AND cn.country_code = '[nl]'
-  AND TRUE
-  AND TRUE
+  
+  
   AND rt.role = 'actress'
-  AND TRUE
+  
   AND t.title LIKE '%Kung%Fu%Panda%'
   AND an.person_id = n.id
   AND n.id = ci.person_id

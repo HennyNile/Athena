@@ -16,7 +16,7 @@ WHERE cct1.kind = 'cast'
        OR chn.name LIKE '%Man%')
   AND k.keyword IN ('10,000-mile-club', 'alienation')
   AND kt.kind = 'movie'
-  AND TRUE
+  
   AND t.production_year >= 1899
   AND kt.id = t.kind_id
   AND t.id = mk.movie_id

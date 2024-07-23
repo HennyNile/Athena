@@ -12,9 +12,9 @@ WHERE cn.country_code = '[nl]'
   AND ct.kind IN ('distributors', 'production companies')
   AND it1.info = 'trivia'
   AND it2.info = 'votes'
-  AND TRUE
+  
   AND t.production_year BETWEEN 2012 AND 2017
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND mi.info_type_id = it1.id

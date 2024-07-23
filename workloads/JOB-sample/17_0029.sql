@@ -11,8 +11,8 @@ FROM cast_info AS ci,
 WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)', '(story editor)', '(story)')
   AND it1.info = 'budget'
   AND it2.info = 'votes'
-  AND TRUE
-  AND TRUE
+  
+  
   AND n.gender = 'f'
   AND n.name LIKE '%Yo%'
   AND t.production_year >= 2002

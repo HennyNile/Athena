@@ -12,11 +12,11 @@ FROM aka_name AS an,
 WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)')
   AND cn.country_code = '[nl]'
   AND mc.note IS NOT NULL
-  AND TRUE
+  
   AND n.gender = 'm'
-  AND TRUE
+  
   AND rt.role = 'actor'
-  AND TRUE
+  
   AND ci.movie_id = t.id
   AND t.id = mc.movie_id
   AND ci.movie_id = mc.movie_id

@@ -31,7 +31,7 @@ WHERE cct1.kind = 'crew'
   AND n.gender = 'f'
   AND n.name LIKE '%Angel%'
   AND rt.role = 'actress'
-  AND TRUE
+  
   AND t.production_year >= 1979
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id

@@ -7,7 +7,7 @@ FROM cast_info AS ci,
      name AS n,
      title AS t
 WHERE k.keyword = 'superhero'
-  AND TRUE
+  
   AND t.production_year <= 2014
   AND k.id = mk.keyword_id
   AND t.id = mk.movie_id

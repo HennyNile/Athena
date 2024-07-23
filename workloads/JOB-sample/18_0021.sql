@@ -13,14 +13,14 @@ FROM aka_name AS an,
 WHERE ci.note = '(voice)'
   AND cn.country_code = '[pl]'
   AND it.info = 'release dates'
-  AND TRUE
+  
   AND (mi.info LIKE 'Japan:%200%'
        OR mi.info LIKE 'Japan:%2007%')
   AND n.gender = 'f'
-  AND TRUE
+  
   AND rt.role = 'actress'
   AND t.production_year >= 1905
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id

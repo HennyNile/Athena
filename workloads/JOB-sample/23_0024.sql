@@ -24,7 +24,7 @@ WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)')
   AND n.name LIKE 'Z%'
   AND rt.role = 'actor' 
   AND t.production_year >= 1925
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id

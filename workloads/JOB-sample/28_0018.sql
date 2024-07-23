@@ -20,7 +20,7 @@ FROM aka_name AS an,
      title AS t
 WHERE cct1.kind = 'cast'
   AND cct2.kind = 'cast'
-  AND TRUE
+  
   AND ci.note IN ('(executive producer)', '(head writer)', '(producer)', '(story editor)')
   AND cn.country_code = '[nl]'
   AND it.info = 'countries'
@@ -30,7 +30,7 @@ WHERE cct1.kind = 'cast'
   AND n.gender = 'f'
   AND n.name LIKE '%Angel%'
   AND rt.role = 'actress'
-  AND TRUE
+  
   AND t.production_year >= 1948
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id

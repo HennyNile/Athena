@@ -15,7 +15,7 @@ WHERE cct1.kind = 'cast'
   AND chn.name LIKE '%man%'
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic')
   AND kt.kind = 'episode'
-  AND TRUE
+  
   AND t.production_year >= 1957
   AND kt.id = t.kind_id
   AND t.id = mk.movie_id

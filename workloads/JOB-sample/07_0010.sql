@@ -7,12 +7,11 @@ FROM aka_name AS an,
      name AS n,
      role_type AS rt,
      title AS t
-WHERE TRUE
-  AND cn.country_code = '[pl]'
-  AND TRUE
-  AND TRUE
+WHERE cn.country_code = '[pl]'
+  
+  
   AND rt.role = 'actor'
-  AND TRUE
+  
   AND (t.title LIKE '%Champion%'
        OR t.title LIKE '%Freddy%')
   AND an.person_id = n.id

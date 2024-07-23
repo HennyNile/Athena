@@ -11,10 +11,10 @@ FROM aka_name AS an,
      title AS t
 WHERE ci.note IN ('(executive producer)', '(head writer)')
   AND cn.country_code = '[us]'
-  AND TRUE
-  AND TRUE
+  
+  
   AND n.gender = 'm'
-  AND TRUE
+  
   AND rt.role = 'actor'
   AND t.production_year BETWEEN 1966 AND 2019
   AND ci.movie_id = t.id

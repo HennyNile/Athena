@@ -11,10 +11,10 @@ FROM cast_info AS ci,
 WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)', '(story editor)', '(story)')
   AND it1.info = 'genres'
   AND it2.info = 'votes'
-  AND TRUE
-  AND TRUE
+  
+  
   AND n.gender = 'f'
-  AND TRUE
+  
   AND t.production_year BETWEEN 1884 AND 1919
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id

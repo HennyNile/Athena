@@ -5,9 +5,9 @@ FROM company_type AS ct,
      movie_info AS mi,
      title AS t
 WHERE ct.kind = 'distributors'
-  AND TRUE
+  
   AND mc.note LIKE '%(Japan)%'
-  AND TRUE
+  
   AND mc.note LIKE '%(200%)%'
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish', 'Denmark', 'Drama', 'English')
   AND t.production_year >= 1916

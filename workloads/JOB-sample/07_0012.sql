@@ -7,10 +7,7 @@ FROM aka_name AS an,
      name AS n,
      role_type AS rt,
      title AS t
-WHERE TRUE
-  AND cn.country_code = '[us]'
-  AND TRUE
-  AND TRUE
+WHERE cn.country_code = '[us]'
   AND rt.role = 'costume designer'
   AND t.production_year >= 1948
   AND t.title LIKE '%Murder%'

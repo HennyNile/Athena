@@ -13,13 +13,13 @@ FROM aka_name AS an,
 WHERE ci.note = '(producer)'
   AND cn.country_code = '[nl]'
   AND it.info = 'genres'
-  AND TRUE
-  AND TRUE
+  
+  
   AND n.gender = 'm'
-  AND TRUE
+  
   AND rt.role = 'actor'
   AND t.production_year BETWEEN 1942 AND 1996
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id

@@ -11,12 +11,12 @@ FROM cast_info AS ci,
 WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)')
   AND it1.info = 'release dates'
   AND it2.info = 'votes'
-  AND TRUE
+  
   AND mi.note IS NULL
   AND mi_idx.info >= '3.0'
   AND n.gender = 'f'
   AND n.name LIKE '%Yu%'
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id

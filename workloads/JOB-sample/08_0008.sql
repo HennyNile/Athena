@@ -15,9 +15,9 @@ WHERE ci.note = '(voice)'
   AND (mc.note LIKE '%(co-production)%'
        OR mc.note NOT LIKE '%(2007)%')
   AND n.gender = 'f'
-  AND TRUE
+  
   AND rt.role = 'actress'
-  AND TRUE
+  
   AND ci.movie_id = t.id
   AND t.id = mc.movie_id
   AND ci.movie_id = mc.movie_id

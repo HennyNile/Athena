@@ -12,9 +12,9 @@ FROM aka_name AS an,
 WHERE ci.note = '(voice: Japanese version)'
   AND cn.country_code = '[us]'
   AND mc.note IS NOT NULL
-  AND TRUE
+  
   AND n.gender = 'm'
-  AND TRUE
+  
   AND rt.role = 'actor'
   AND t.production_year BETWEEN 1938 AND 2017
   AND ci.movie_id = t.id

@@ -7,16 +7,15 @@ FROM aka_name AS an,
      name AS n,
      role_type AS rt,
      title AS t
-WHERE TRUE
-  AND cn.country_code = '[nl]'
+WHERE cn.country_code = '[nl]'
   AND mc.note LIKE '%(TV)%'
   AND mc.note NOT LIKE '%(200%)%'
   AND (mc.note LIKE '%(1994)%'
        OR mc.note LIKE '%(200%)%')
-  AND TRUE
+  
   AND rt.role = 'actor'
   AND t.production_year >= 1894
-  AND TRUE
+  
   AND an.person_id = n.id
   AND n.id = ci.person_id
   AND ci.movie_id = t.id

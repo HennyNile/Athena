@@ -30,7 +30,7 @@ WHERE cct1.kind = 'complete+verified'
   AND n.gender = 'm'
   AND n.name LIKE '%Yo%'
   AND rt.role = 'costume designer'
-  AND TRUE
+  
   AND t.production_year <= 1972
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id

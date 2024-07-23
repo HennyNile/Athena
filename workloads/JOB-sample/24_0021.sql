@@ -18,7 +18,7 @@ WHERE ci.note = '(executive producer)'
   AND mi.info = 'Horror'
   AND n.gender = 'm'
   AND t.production_year BETWEEN 1926 AND 2002
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id

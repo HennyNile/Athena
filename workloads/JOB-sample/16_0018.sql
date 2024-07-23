@@ -9,7 +9,7 @@ FROM cast_info AS ci,
      title AS t
 WHERE cn.country_code = '[us]'
   AND k.keyword = 'hand-to-hand-combat'
-  AND TRUE
+  
   AND n.id = ci.person_id
   AND ci.movie_id = t.id
   AND t.id = mk.movie_id

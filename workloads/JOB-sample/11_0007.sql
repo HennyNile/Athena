@@ -12,7 +12,7 @@ WHERE cn.country_code = '[us]'
   AND ct.kind = 'production companies'
   AND it1.info = 'release dates'
   AND it2.info = 'rating'
-  AND TRUE
+  
   AND t.production_year >= 2001
   AND (t.title LIKE '%Champion%'
        OR t.title LIKE '%Freddy%')

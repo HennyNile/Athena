@@ -14,12 +14,12 @@ WHERE ci.note = '(voice)'
   AND cn.country_code = '[jp]'
   AND it.info = 'budget'
   AND mc.note LIKE '%(200%)%'
-  AND TRUE
+  
   AND n.gender = 'm'
   AND n.name LIKE '%An%'
   AND rt.role = 'actor'
   AND t.production_year BETWEEN 1914 AND 1997
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id

@@ -30,7 +30,7 @@ WHERE cct1.kind = 'cast'
   AND n.gender = 'm'
   AND n.name LIKE 'A%'
   AND rt.role = 'actress'
-  AND TRUE
+  
   AND t.production_year BETWEEN 1978 AND 1997
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
