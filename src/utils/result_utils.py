@@ -6,7 +6,7 @@ import re
 
 job_name_re = re.compile(r"(\d+)([a-z]).json")
 number_re = re.compile(r"(\d+).json")
-job_sample_name_re = re.compile(r"(\d+)_(\d+).json")
+sample_name_re = re.compile(r"(\d+)_(\d+).json")
 
 def job_name_cmp(a: str, b: str) -> int:
     a_id, a_letter = job_name_re.match(a).groups()
@@ -20,25 +20,25 @@ def num_cmp(a: str, b: str) -> int:
     b_id = number_re.match(b).group(1)
     return int(a_id) - int(b_id)
 
-def job_sample_name_cmp(a: str, b: str) -> int:
-    a_id, a_sample_id = job_sample_name_re.match(a).groups()
-    b_id, b_sample_id = job_sample_name_re.match(b).groups()
+def sample_name_cmp(a: str, b: str) -> int:
+    a_id, a_sample_id = sample_name_re.match(a).groups()
+    b_id, b_sample_id = sample_name_re.match(b).groups()
     if a_id != b_id:
         return int(a_id) - int(b_id)
     return int(a_sample_id) - int(b_sample_id)
 
 def load_latest_plans(db, workload, method):
-    plan_dirpath = f"results/{db}/{workload}/{method.lower()}/"
+    plan_dirpath = f"results/{db}/{workload}/{method}/"
     timestamp = sorted(os.listdir(plan_dirpath))[-1]
     plan_dirpath = plan_dirpath + timestamp + '/'
     plan_filenames = os.listdir(plan_dirpath)
     key = None
     if workload == 'JOB':
         key = cmp_to_key(job_name_cmp)
-    elif workload == 'STATS' or workload == 'TPCH':
+    elif workload == 'STATS':
         key = cmp_to_key(num_cmp)
-    elif workload == 'JOB-sample':
-        key = cmp_to_key(job_sample_name_cmp)
+    elif workload == 'JOB-sample' or workload == 'STATS-sample' or workload == 'TPCH' or workload == 'TPCH-sample' or workload == 'TPCDS' or workload == 'TPCDS-sample':
+        key = cmp_to_key(sample_name_cmp)
     else:
         raise ValueError(f'Invalid workload: {workload}')
     plan_filenames.sort(key=key)
@@ -51,8 +51,8 @@ def load_latest_plans(db, workload, method):
             json_plans.append(json_plan)
     return names, json_plans
 
-def load_model_selected_plans(db, workload, method, model):
-    selected_plans_filepath = f'results/{db}/{workload}/{method}/{model}.json'
+def load_model_selected_plans(db, workload, method, result_path):
+    selected_plans_filepath = f'results/{db}/{workload}/{method}/{result_path}.json'
     with open(selected_plans_filepath, 'r') as f:
         selected_plans = json.load(f)
     return selected_plans
@@ -71,7 +71,5 @@ if __name__ == '__main__':
     for plan in plans:
         runtime_sum += plan['Execution Time']
         runtime_list.append(plan['Execution Time'])
-    print(len(plans))
+    sorted_runtime_list = sorted(runtime_list)
     print(runtime_sum)
-
-
