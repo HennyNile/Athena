@@ -36,12 +36,15 @@ class PlanDataset(Dataset):
     def __getitem__(self, idx):
         return self.samples[idx]
 
-def tailr_loss_with_logits(input: torch.Tensor, target: torch.Tensor, weight: torch.Tensor, gamma: float = 0.1):
+def tailr_loss_with_logits(input: torch.Tensor, target: torch.Tensor, weight: torch.Tensor|None = None, gamma: float = 0.1):
     pos = -torch.log(gamma + (1 - gamma) * torch.sigmoid(input))
     neg = -torch.log(gamma + (1 - gamma) * (1 - torch.sigmoid(input)))
-    return torch.mean(weight * (target * pos + (1 - target) * neg)) / (1 - gamma)
+    if weight is not None:
+        return torch.sum(weight * (target * pos + (1 - target) * neg)) / (1 - gamma)
+    else:
+        return torch.mean(target * pos + (1 - target) * neg) / (1 - gamma)
 
-def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epochs):
+def train(model, optimizer, scheduler, dataloader, val_dataloader, test_dataloader, num_epochs):
     for epoch in range(num_epochs):
         model.model.cuda()
         model.model.train()
@@ -60,6 +63,9 @@ def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epo
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+        model.save(f'mamba_{epoch}.pt')
+        if scheduler is not None:
+            scheduler.step()
         loss = sum(losses) / len(losses)
         writer.add_scalar('train/cost_loss', loss, epoch)
         print(f'Epoch {epoch}, loss: {loss}')
@@ -168,8 +174,8 @@ def main(args: argparse.Namespace):
         test_dataloader = DataLoader(test_dataset, batch_sampler=test_sampler, collate_fn=model._transform_samples)
     else:
         test_dataloader = None
-    optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-4)
-    train(model, optimizer, dataloader, val_dataloader, test_dataloader, args.epoch)
+    optimizer = torch.optim.Adam(model.model.parameters(), lr=args.lr)
+    train(model, optimizer, None, dataloader, val_dataloader, test_dataloader, args.epoch)
     os.makedirs('models', exist_ok=True)
     model.save(f'models/lero_on_{database}_{workload}_{method}_{args.valset.split(".")[0]}.pth')
 
@@ -182,6 +188,7 @@ if __name__ == '__main__':
     parser.add_argument('--epoch', type=int, default=100)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--valset', type=str, default='val.json')
+    parser.add_argument('--lr', type=float, default=1e-3)
     args = parser.parse_args()
     seed = args.seed
     random.seed(seed)
