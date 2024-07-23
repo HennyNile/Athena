@@ -166,3 +166,7 @@ cython_debug/
 # results/
 runs/
 tmp*
+*.pt
+*.pth
+*.png
+outputs/
