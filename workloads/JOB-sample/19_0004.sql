@@ -16,7 +16,7 @@ WHERE cct1.kind = 'crew'
        OR chn.name LIKE '%Man%')
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic', 'based-on-novel', 'blood')
   AND kt.kind = 'video movie'
-  AND TRUE
+  
   AND t.production_year >= 1946
   AND kt.id = t.kind_id
   AND t.id = mk.movie_id

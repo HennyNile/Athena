@@ -19,7 +19,7 @@ WHERE cct1.kind = 'cast'
   AND it2.info = 'rating'
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic', 'based-on-novel', 'blood', 'character-name-in-title', 'claw')
   AND kt.kind = 'video movie'
-  AND TRUE
+  
   AND t.production_year <= 1996
   AND kt.id = t.kind_id
   AND t.id = mk.movie_id

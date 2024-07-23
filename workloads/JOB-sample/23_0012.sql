@@ -15,7 +15,7 @@ FROM aka_name AS an,
      title AS t
 WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)', '(story editor)')
   AND cn.country_code = '[nl]'
-  AND TRUE
+  
   AND it.info = 'mini biography'
   AND k.keyword IN ('10,000-mile-club', 'alienation')
   AND (mi.info LIKE 'Japan:%200%'
@@ -24,7 +24,7 @@ WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)', '(story
   AND n.name LIKE 'A%'
   AND rt.role = 'writer' 
   AND t.production_year <= 1911
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id

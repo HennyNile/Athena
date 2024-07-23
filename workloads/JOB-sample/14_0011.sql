@@ -10,9 +10,9 @@ FROM aka_title AS at,
      movie_keyword AS mk,
      title AS t
 WHERE cn.country_code = '[us]'
-  AND TRUE
+  
   AND it1.info = 'release dates'
-  AND TRUE
+  
   AND mi.note LIKE '%internet%'
   AND mi.info LIKE 'USA:% 199%'
   AND t.production_year BETWEEN 1935 AND 2002

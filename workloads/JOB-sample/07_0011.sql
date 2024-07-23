@@ -7,15 +7,11 @@ FROM aka_name AS an,
      name AS n,
      role_type AS rt,
      title AS t
-WHERE TRUE
-  AND cn.country_code = '[us]'
+WHERE cn.country_code = '[us]'
   AND mc.note LIKE '%(2007)%'
   AND mc.note NOT LIKE '%(worldwide)%'
   AND mc.note LIKE '%(Blu-ray)%'
-  AND TRUE
   AND rt.role = 'costume designer'
-  AND TRUE
-  AND TRUE
   AND an.person_id = n.id
   AND n.id = ci.person_id
   AND ci.movie_id = t.id

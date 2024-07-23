@@ -20,7 +20,7 @@ FROM aka_name AS an,
      title AS t
 WHERE cct1.kind = 'cast'
   AND cct2.kind = 'crew'
-  AND TRUE
+  
   AND ci.note IN ('(executive producer)', '(head writer)')
   AND cn.country_code = '[ru]'
   AND it.info = 'top 250 rank'
@@ -31,7 +31,7 @@ WHERE cct1.kind = 'cast'
   AND n.gender = 'f'
   AND n.name LIKE '%Downey%Robert%'
   AND rt.role = 'costume designer'
-  AND TRUE
+  
   AND t.production_year >= 1909
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id

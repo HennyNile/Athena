@@ -12,9 +12,9 @@ WHERE cn.country_code = '[us]'
   AND ct.kind = 'distributors'
   AND it1.info = 'release dates'
   AND it2.info = 'bottom 10 rank'
-  AND TRUE
+  
   AND t.production_year <= 2008
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND mi.info_type_id = it1.id

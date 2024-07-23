@@ -8,7 +8,7 @@ FROM char_name AS chn,
      role_type AS rt,
      title AS t
 WHERE ci.note LIKE '%(voice)%'
-  AND TRUE
+  
   AND cn.country_code = '[jp]'
   AND rt.role = 'actress'
   AND t.production_year = 1946

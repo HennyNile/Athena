@@ -15,7 +15,7 @@ WHERE it1.info = 'countries'
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish', 'Denmark', 'Drama', 'English', 'Family', 'German')
   AND mi_idx.info BETWEEN '3.0' AND '6.0'
   AND t.production_year <= 2013
-  AND TRUE
+  
   AND kt.id = t.kind_id
   AND t.id = mi.movie_id
   AND t.id = mk.movie_id

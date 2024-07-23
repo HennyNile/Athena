@@ -15,7 +15,7 @@ WHERE it1.info = 'countries'
   AND mi.info IN ('Action', 'American', 'Bulgaria')
   AND mi_idx.info BETWEEN '6.5' AND '8.5'
   AND t.production_year <= 1989
-  AND TRUE
+  
   AND kt.id = t.kind_id
   AND t.id = mi.movie_id
   AND t.id = mk.movie_id

@@ -7,14 +7,13 @@ FROM aka_name AS an,
      name AS n,
      role_type AS rt,
      title AS t
-WHERE TRUE
-  AND cn.country_code = '[pl]'
-  AND TRUE
+WHERE cn.country_code = '[pl]'
+  
   AND n.name LIKE '%Yo%'
   AND n.name NOT LIKE '%Bert%'
   AND rt.role = 'costume designer'
-  AND TRUE
-  AND TRUE
+  
+  
   AND an.person_id = n.id
   AND n.id = ci.person_id
   AND ci.movie_id = t.id

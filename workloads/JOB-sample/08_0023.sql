@@ -12,11 +12,11 @@ FROM aka_name AS an,
 WHERE ci.note = '(voice)'
   AND cn.country_code = '[us]'
   AND mc.note IS NOT NULL
-  AND TRUE
+  
   AND n.gender = 'f'
-  AND TRUE
+  
   AND rt.role = 'actress'
-  AND TRUE
+  
   AND ci.movie_id = t.id
   AND t.id = mc.movie_id
   AND ci.movie_id = mc.movie_id

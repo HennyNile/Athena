@@ -17,7 +17,7 @@ WHERE cn.country_code != '[ru]'
   AND it2.info = 'votes'
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic')
   AND kt.kind IN ('episode', 'movie')
-  AND TRUE
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish', 'Denmark', 'Drama', 'English')
   AND mi_idx.info BETWEEN '3.0' AND '3.5'
   AND t.production_year >= 1943

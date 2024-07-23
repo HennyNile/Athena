@@ -20,9 +20,9 @@ WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)')
   AND k.keyword IN ('10,000-mile-club', 'alienation')
   AND mc.note LIKE '%(Blu-ray)%'
   AND mi.info IN ('Action', 'American', 'Bulgaria')
-  AND TRUE
-  AND TRUE
-  AND TRUE
+  
+  
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id

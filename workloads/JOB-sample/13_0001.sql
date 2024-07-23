@@ -15,7 +15,7 @@ WHERE it1.info = 'genres'
   AND mi.info IN ('Action', 'American', 'Bulgaria')
   AND mi_idx.info >= '7.0'
   AND t.production_year BETWEEN 1885 AND 1966
-  AND TRUE
+  
   AND kt.id = t.kind_id
   AND t.id = mi.movie_id
   AND t.id = mk.movie_id

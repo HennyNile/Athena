@@ -17,7 +17,7 @@ WHERE cn.country_code != '[ru]'
   AND it2.info = 'rating'
   AND k.keyword = 'fight'
   AND kt.kind IN ('episode', 'movie')
-  AND TRUE
+  
   AND mi.info = 'Western'
   AND mi_idx.info <= '7.0'
   AND t.production_year >= 1932

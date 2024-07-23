@@ -11,7 +11,7 @@ WHERE ct.kind = 'distributors'
   AND mc.note NOT LIKE '%(France)%'
   AND (mc.note LIKE '%(1994)%'
        OR mc.note LIKE '%(200%)%')
-  AND TRUE
+  
   AND ct.id = mc.company_type_id
   AND t.id = mc.movie_id
   AND t.id = mi_idx.movie_id

@@ -8,7 +8,7 @@ WHERE ct.kind = 'distributors'
   AND mc.note NOT LIKE '%(co-production)%'
   AND mc.note LIKE '%(VHS)%'
   AND mc.note LIKE '%(worldwide)%'
-  AND TRUE
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish', 'Denmark')
   AND t.production_year BETWEEN 1919 AND 1926
   AND t.id = mi.movie_id

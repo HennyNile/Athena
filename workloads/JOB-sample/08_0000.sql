@@ -12,11 +12,11 @@ FROM aka_name AS an,
 WHERE ci.note = '(voice: English version)'
   AND cn.country_code = '[de]'
   AND mc.note LIKE '%(2006)%'
-  AND TRUE
+  
   AND n.gender = 'm'
   AND n.name LIKE '%B%'
   AND rt.role = 'actor'
-  AND TRUE
+  
   AND ci.movie_id = t.id
   AND t.id = mc.movie_id
   AND ci.movie_id = mc.movie_id

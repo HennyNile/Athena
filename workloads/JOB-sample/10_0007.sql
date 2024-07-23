@@ -10,13 +10,13 @@ FROM company_name AS cn,
      movie_link AS ml,
      title AS t
 WHERE cn.country_code != '[pl]'
-  AND TRUE
+  
   AND ct.kind = 'distributors'
   AND k.keyword = 'tv-special'
-  AND TRUE
+  
   AND mc.note IS NULL
   AND t.production_year >= 1996
-  AND TRUE
+  
   AND lt.id = ml.link_type_id
   AND ml.movie_id = t.id
   AND t.id = mk.movie_id

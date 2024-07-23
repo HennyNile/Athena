@@ -22,7 +22,7 @@ WHERE cct1.kind IN ('cast', 'complete+verified')
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic', 'based-on-novel', 'blood', 'character-name-in-title', 'claw')
   AND mi.info IN ('Action', 'American', 'Bulgaria')
   AND n.gender = 'm'
-  AND TRUE
+  
   AND (t.title LIKE '%Champion%'
        OR t.title LIKE '%Freddy%'
        OR t.title LIKE '%Jason%')

@@ -12,7 +12,7 @@ WHERE cn.country_code = '[nl]'
   AND ct.kind IN ('distributors', 'production companies')
   AND it1.info = 'budget'
   AND it2.info = 'votes'
-  AND TRUE
+  
   AND t.production_year >= 1916
   AND t.title LIKE '%Jason%'
   AND t.id = mi.movie_id

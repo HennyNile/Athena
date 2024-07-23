@@ -5,10 +5,10 @@ FROM company_type AS ct,
      movie_info AS mi,
      title AS t
 WHERE ct.kind = 'production companies'
-  AND TRUE
+  
   AND mc.note LIKE '%(USA)%'
-  AND TRUE
-  AND TRUE
+  
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish', 'Denmark')
   AND t.production_year >= 1909
   AND t.id = mi.movie_id

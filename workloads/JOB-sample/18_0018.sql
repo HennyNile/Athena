@@ -15,12 +15,12 @@ WHERE ci.note = '(voice: English version)'
   AND it.info = 'release dates'
   AND (mc.note LIKE '%(1994)%'
        OR mc.note LIKE '%(200%)%')
-  AND TRUE
+  
   AND n.gender = 'm'
-  AND TRUE
+  
   AND rt.role = 'actress'
   AND t.production_year BETWEEN 1968 AND 2017
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id

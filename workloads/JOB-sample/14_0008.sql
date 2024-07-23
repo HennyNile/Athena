@@ -10,11 +10,11 @@ FROM aka_title AS at,
      movie_keyword AS mk,
      title AS t
 WHERE cn.country_code = '[jp]'
-  AND TRUE
+  
   AND it1.info = 'release dates'
-  AND TRUE
+  
   AND mi.note LIKE '%internet%'
-  AND TRUE
+  
   AND t.production_year >= 1912
   AND t.id = at.movie_id
   AND t.id = mi.movie_id

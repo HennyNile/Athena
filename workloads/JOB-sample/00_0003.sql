@@ -9,7 +9,7 @@ FROM company_type AS ct,
 WHERE ct.kind = 'distributors'
   AND it.info = 'top 250 rank'
   AND mc.note NOT LIKE '%(2006)%'
-  AND TRUE
+  
   AND t.production_year BETWEEN 1934 AND 1962
   AND ct.id = mc.company_type_id
   AND t.id = mc.movie_id

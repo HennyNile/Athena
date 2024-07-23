@@ -7,8 +7,8 @@ FROM company_type AS ct,
 WHERE ct.kind = 'distributors'
   AND mc.note NOT LIKE '%(worldwide)%'
   AND mc.note LIKE '%(Japan)%'
-  AND TRUE
-  AND TRUE
+  
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria')
   AND t.production_year <= 1917
   AND t.id = mi.movie_id

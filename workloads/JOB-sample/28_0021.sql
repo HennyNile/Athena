@@ -20,7 +20,7 @@ FROM aka_name AS an,
      title AS t
 WHERE cct1.kind = 'complete+verified'
   AND cct2.kind = 'crew'
-  AND TRUE
+  
   AND ci.note IN ('(executive producer)', '(head writer)', '(producer)')
   AND cn.country_code = '[ru]'
   AND it.info = 'height'

@@ -30,7 +30,7 @@ WHERE cct1.kind = 'complete+verified'
   AND n.gender = 'f'
   AND n.name LIKE 'Z%'
   AND rt.role = 'actor'
-  AND TRUE
+  
   AND t.production_year >= 1990
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id

@@ -17,7 +17,7 @@ WHERE cn.country_code != '[sm]'
   AND lt.link LIKE '%follows%'
   AND mc.note IS NOT NULL
   AND t.production_year <= 1964
-  AND TRUE
+  
   AND lt.id = ml.link_type_id
   AND ml.movie_id = t.id
   AND t.id = mk.movie_id

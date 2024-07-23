@@ -7,8 +7,8 @@ FROM company_type AS ct,
 WHERE ct.kind = 'distributors'
   AND mc.note NOT LIKE '%(France)%'
   AND mc.note LIKE '%(VHS)%'
-  AND TRUE
-  AND TRUE
+  
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish')
   AND t.production_year BETWEEN 1908 AND 1983
   AND t.id = mi.movie_id

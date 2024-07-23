@@ -8,7 +8,7 @@ WHERE ct.kind = 'distributors'
   AND mc.note NOT LIKE '%(TV)%'
   AND mc.note LIKE '%(2007)%'
   AND mc.note LIKE '%(Japan)%'
-  AND TRUE
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish', 'Denmark', 'Drama', 'English', 'Family')
   AND t.production_year >= 1895
   AND t.id = mi.movie_id

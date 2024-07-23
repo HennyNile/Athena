@@ -17,8 +17,8 @@ WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)')
   AND k.keyword IN ('10,000-mile-club', 'alienation')
   AND mi.info IN ('Action', 'American')
   AND n.gender = 'f'
-  AND TRUE
-  AND TRUE
+  
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id

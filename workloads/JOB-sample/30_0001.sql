@@ -21,8 +21,8 @@ WHERE ci.note IN ('(executive producer)', '(head writer)')
   AND mc.note LIKE '%(2006)%'
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish', 'Denmark')
   AND n.gender = 'f'
-  AND TRUE
-  AND TRUE
+  
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id

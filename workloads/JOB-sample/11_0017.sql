@@ -12,7 +12,7 @@ WHERE cn.country_code = '[de]'
   AND ct.kind IN ('distributors', 'production companies')
   AND it1.info = 'trivia'
   AND it2.info = 'votes'
-  AND TRUE
+  
   AND t.production_year <= 2003
   AND t.title LIKE '%Money%'
   AND t.id = mi.movie_id

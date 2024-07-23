@@ -15,7 +15,7 @@ FROM aka_name AS an,
      title AS t
 WHERE ci.note IN ('(executive producer)', '(head writer)')
   AND cn.country_code = '[nl]'
-  AND TRUE
+  
   AND it.info = 'countries'
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic')
   AND mi.info LIKE 'USA:% 199%'

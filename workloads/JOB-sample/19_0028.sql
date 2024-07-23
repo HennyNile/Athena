@@ -16,7 +16,7 @@ WHERE cct1.kind = 'crew'
        OR chn.name LIKE '%Man%')
   AND k.keyword = 'character-name-in-title'
   AND kt.kind = 'episode'
-  AND TRUE
+  
   AND t.production_year >= 1928
   AND kt.id = t.kind_id
   AND t.id = mk.movie_id

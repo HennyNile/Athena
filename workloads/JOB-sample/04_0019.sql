@@ -5,10 +5,10 @@ FROM company_type AS ct,
      movie_info AS mi,
      title AS t
 WHERE ct.kind = 'distributors'
-  AND TRUE
+  
   AND mc.note LIKE '%(2007)%'
-  AND TRUE
-  AND TRUE
+  
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria')
   AND t.production_year BETWEEN 1957 AND 1974
   AND t.id = mi.movie_id

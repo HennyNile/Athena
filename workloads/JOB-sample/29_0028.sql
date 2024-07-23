@@ -23,7 +23,7 @@ WHERE cct1.kind = 'cast'
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime')
   AND n.gender = 'f'
   AND t.production_year >= 1906
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id

@@ -11,7 +11,7 @@ FROM aka_name AS an,
      title AS t
 WHERE ci.note = '(voice)'
   AND cn.country_code = '[de]'
-  AND TRUE
+  
   AND (mc.note LIKE '%(France)%'
        OR mc.note NOT LIKE '%(theatrical)%')
   AND n.gender = 'm'

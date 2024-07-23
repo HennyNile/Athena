@@ -15,12 +15,12 @@ WHERE ci.note = '(voice)'
   AND it.info = 'trivia'
   AND (mc.note LIKE '%(1994)%'
        OR mc.note LIKE '%(200%)%')
-  AND TRUE
+  
   AND n.gender = 'm'
   AND n.name LIKE '%B%'
   AND rt.role = 'actor'
   AND t.production_year BETWEEN 1894 AND 1985
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id

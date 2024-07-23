@@ -17,7 +17,7 @@ WHERE cn.country_code != '[jp]'
   AND it2.info = 'top 250 rank'
   AND k.keyword = 'hospital'
   AND kt.kind IN ('episode', 'movie')
-  AND TRUE
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish', 'Denmark')
   AND mi_idx.info <= '8.0'
   AND t.production_year <= 1987

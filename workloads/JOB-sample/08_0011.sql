@@ -15,7 +15,7 @@ WHERE ci.note = '(voice)'
   AND (mc.note LIKE '%(2006)%'
        OR mc.note NOT LIKE '%(USA)%')
   AND n.gender = 'f'
-  AND TRUE
+  
   AND rt.role = 'actress'
   AND t.production_year BETWEEN 1902 AND 2002
   AND ci.movie_id = t.id

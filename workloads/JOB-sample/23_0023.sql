@@ -15,7 +15,7 @@ FROM aka_name AS an,
      title AS t
 WHERE ci.note = '(story)'
   AND cn.country_code = '[ru]'
-  AND TRUE
+  
   AND it.info = 'height'
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic')
   AND mi.info LIKE 'USA:%200%'

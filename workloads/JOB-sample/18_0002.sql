@@ -15,12 +15,12 @@ WHERE ci.note = '(voice)'
   AND it.info = 'countries'
   AND (mc.note LIKE '%(1994)%'
        OR mc.note LIKE '%(200%)%')
-  AND TRUE
+  
   AND n.gender = 'm'
   AND n.name LIKE 'A%'
   AND rt.role = 'actor'
   AND t.production_year >= 1897
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id

@@ -15,7 +15,7 @@ FROM aka_name AS an,
      title AS t
 WHERE ci.note IN ('(executive producer)', '(head writer)')
   AND cn.country_code = '[us]'
-  AND TRUE
+  
   AND it.info = 'rating'
   AND k.keyword = 'murder'
   AND mi.info LIKE 'USA:% 200%'
@@ -23,7 +23,7 @@ WHERE ci.note IN ('(executive producer)', '(head writer)')
   AND n.name LIKE '%Tim%'
   AND rt.role = 'actress' 
   AND t.production_year <= 1888
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id

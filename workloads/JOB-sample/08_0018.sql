@@ -15,7 +15,7 @@ WHERE ci.note = '(voice: Japanese version)'
   AND (mc.note LIKE '%(1994)%'
        OR mc.note NOT LIKE '%(2007)%')
   AND n.gender = 'f'
-  AND TRUE
+  
   AND rt.role = 'actress'
   AND t.production_year >= 1921
   AND ci.movie_id = t.id

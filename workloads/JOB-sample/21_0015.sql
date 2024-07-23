@@ -17,7 +17,7 @@ WHERE cn.country_code != '[sm]'
   AND it2.info = 'votes'
   AND k.keyword = 'death'
   AND kt.kind IN ('episode', 'movie')
-  AND TRUE
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish', 'Denmark', 'Drama')
   AND mi_idx.info BETWEEN '2.0' AND '5.0'
   AND t.production_year BETWEEN 1933 AND 1954

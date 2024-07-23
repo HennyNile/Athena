@@ -13,13 +13,13 @@ FROM aka_name AS an,
 WHERE ci.note = '(voice)'
   AND cn.country_code = '[jp]'
   AND it.info = 'release dates'
-  AND TRUE
-  AND TRUE
+  
+  
   AND n.gender = 'f'
   AND n.name LIKE 'B%'
   AND rt.role = 'actress'
   AND t.production_year <= 1994
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id

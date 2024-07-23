@@ -7,8 +7,7 @@ FROM cast_info AS ci,
      movie_keyword AS mk,
      name AS n,
      title AS t
-WHERE TRUE
-  AND k.keyword = 'murder'
+WHERE k.keyword = 'murder'
   AND n.name LIKE '%Ang%'
   AND n.id = ci.person_id
   AND ci.movie_id = t.id

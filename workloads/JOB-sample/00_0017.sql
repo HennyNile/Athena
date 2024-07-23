@@ -9,7 +9,7 @@ FROM company_type AS ct,
 WHERE ct.kind = 'production companies'
   AND it.info = 'votes'
   AND mc.note NOT LIKE '%(USA)%'
-  AND TRUE
+  
   AND t.production_year >= 1948
   AND ct.id = mc.company_type_id
   AND t.id = mc.movie_id

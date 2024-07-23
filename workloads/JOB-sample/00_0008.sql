@@ -10,7 +10,7 @@ WHERE ct.kind = 'production companies'
   AND it.info = 'top 250 rank'
   AND mc.note NOT LIKE '%(co-production)%'
   AND mc.note LIKE '%(presents)%'
-  AND TRUE
+  
   AND ct.id = mc.company_type_id
   AND t.id = mc.movie_id
   AND t.id = mi_idx.movie_id

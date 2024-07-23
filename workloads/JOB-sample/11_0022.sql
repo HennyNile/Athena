@@ -15,7 +15,7 @@ WHERE cn.country_code = '[us]'
   AND mi.info IN ('Action', 'American')
   AND mi_idx.info >= '6.0'
   AND t.production_year >= 1967
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND mi.info_type_id = it1.id

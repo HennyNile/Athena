@@ -12,9 +12,9 @@ WHERE cn.country_code = '[us]'
   AND ct.kind = 'distributors'
   AND it1.info = 'genres'
   AND it2.info = 'votes'
-  AND TRUE
+  
   AND t.production_year BETWEEN 1914 AND 1920
-  AND TRUE
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND mi.info_type_id = it1.id

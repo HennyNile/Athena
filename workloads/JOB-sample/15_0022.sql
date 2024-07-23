@@ -10,7 +10,7 @@ FROM aka_name AS an,
      title AS t
 WHERE cn.country_code = '[ru]'
   AND k.keyword = 'based-on-novel'
-  AND TRUE
+  
   AND an.person_id = n.id
   AND n.id = ci.person_id
   AND ci.movie_id = t.id

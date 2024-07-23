@@ -11,8 +11,8 @@ FROM cast_info AS ci,
 WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)')
   AND it1.info = 'budget'
   AND it2.info = 'rating'
-  AND TRUE
-  AND TRUE
+  
+  
   AND n.gender = 'f'
   AND n.name LIKE '%An%'
   AND t.production_year >= 1963

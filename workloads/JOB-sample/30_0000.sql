@@ -18,11 +18,11 @@ WHERE ci.note IN ('(executive producer)', '(head writer)', '(producer)', '(story
   AND it1.info = 'genres'
   AND it2.info = 'top 250 rank'
   AND k.keyword = 'hand-to-hand-combat'
-  AND TRUE
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish')
   AND n.gender = 'm'
-  AND TRUE
-  AND TRUE
+  
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id

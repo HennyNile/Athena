@@ -17,7 +17,7 @@ WHERE cn.country_code != '[ru]'
   AND it2.info = 'votes'
   AND k.keyword IN ('10,000-mile-club', 'alienation')
   AND kt.kind IN ('episode', 'movie')
-  AND TRUE
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish', 'Denmark')
   AND mi_idx.info <= '2.0'
   AND t.production_year BETWEEN 1997 AND 2014

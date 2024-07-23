@@ -20,7 +20,7 @@ FROM aka_name AS an,
      title AS t
 WHERE cct1.kind = 'complete+verified'
   AND cct2.kind = 'cast'
-  AND TRUE
+  
   AND ci.note = '(executive producer)'
   AND cn.country_code = '[de]'
   AND it.info = 'genres'

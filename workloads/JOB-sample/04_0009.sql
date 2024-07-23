@@ -7,8 +7,8 @@ FROM company_type AS ct,
 WHERE ct.kind = 'distributors'
   AND mc.note NOT LIKE '%(USA)%'
   AND mc.note LIKE '%(Japan)%'
-  AND TRUE
-  AND TRUE
+  
+  
   AND mi.info = 'Family'
   AND t.production_year >= 2003
   AND t.id = mi.movie_id

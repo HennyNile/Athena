@@ -12,9 +12,9 @@ FROM aka_name AS an,
 WHERE ci.note = '(voice) (uncredited)'
   AND cn.country_code = '[ru]'
   AND mc.note IS NOT NULL
-  AND TRUE
+  
   AND n.gender = 'f'
-  AND TRUE
+  
   AND rt.role = 'actress'
   AND t.production_year >= 2001
   AND ci.movie_id = t.id

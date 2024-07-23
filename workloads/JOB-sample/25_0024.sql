@@ -20,7 +20,7 @@ WHERE cct1.kind = 'crew'
   AND it2.info = 'rating'
   AND k.keyword IN ('10,000-mile-club', 'alienation')
   AND kt.kind = 'movie'
-  AND TRUE
+  
   AND t.production_year <= 2017
   AND kt.id = t.kind_id
   AND t.id = mk.movie_id

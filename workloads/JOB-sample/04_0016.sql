@@ -7,7 +7,7 @@ FROM company_type AS ct,
 WHERE ct.kind = 'production companies'
   AND mc.note NOT LIKE '%(2006)%'
   AND mc.note LIKE '%(USA)%'
-  AND TRUE
+  
   AND mc.note LIKE '%(TV)%'
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish', 'Denmark', 'Drama', 'English')
   AND t.production_year BETWEEN 1883 AND 2011

@@ -17,7 +17,7 @@ WHERE cn.country_code != '[us]'
   AND it2.info = 'rating'
   AND k.keyword = 'gore'
   AND kt.kind IN ('episode', 'movie')
-  AND TRUE
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime')
   AND mi_idx.info <= '3.0'
   AND t.production_year <= 2007

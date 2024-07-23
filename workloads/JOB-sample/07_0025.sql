@@ -7,13 +7,12 @@ FROM aka_name AS an,
      name AS n,
      role_type AS rt,
      title AS t
-WHERE TRUE
-  AND cn.country_code = '[us]'
-  AND TRUE
-  AND TRUE
+WHERE cn.country_code = '[us]'
+  
+  
   AND rt.role = 'actress'
   AND t.production_year <= 1932
-  AND TRUE
+  
   AND an.person_id = n.id
   AND n.id = ci.person_id
   AND ci.movie_id = t.id

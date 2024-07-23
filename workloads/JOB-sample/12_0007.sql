@@ -15,7 +15,7 @@ WHERE cn.country_code = '[pl]'
   AND it.info = 'votes'
   AND it2.info = 'trivia'
   AND kt.kind = 'movie'
-  AND TRUE
+  
   AND mi.movie_id = t.id
   AND it2.id = mi.info_type_id
   AND kt.id = t.kind_id

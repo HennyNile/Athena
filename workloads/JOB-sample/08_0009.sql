@@ -17,7 +17,7 @@ WHERE ci.note = '(voice)'
   AND n.gender = 'f'
   AND n.name LIKE '%Angel%'
   AND rt.role = 'actress'
-  AND TRUE
+  
   AND ci.movie_id = t.id
   AND t.id = mc.movie_id
   AND ci.movie_id = mc.movie_id

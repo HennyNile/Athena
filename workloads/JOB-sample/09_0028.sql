@@ -8,7 +8,7 @@ FROM char_name AS chn,
      role_type AS rt,
      title AS t
 WHERE ci.note LIKE '%(uncredited)%'
-  AND TRUE
+  
   AND cn.country_code = '[jp]'
   AND rt.role = 'actor'
   AND t.production_year = 2006

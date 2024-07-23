@@ -11,13 +11,13 @@ FROM aka_name AS an,
      title AS t
 WHERE ci.note = '(voice)'
   AND cn.country_code = '[de]'
-  AND TRUE
+  
   AND (mc.note LIKE '%(theatrical)%'
        OR mc.note NOT LIKE '%(France)%')
   AND n.gender = 'f'
-  AND TRUE
+  
   AND rt.role = 'actress'
-  AND TRUE
+  
   AND ci.movie_id = t.id
   AND t.id = mc.movie_id
   AND ci.movie_id = mc.movie_id

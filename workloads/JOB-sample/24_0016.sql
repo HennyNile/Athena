@@ -17,8 +17,8 @@ WHERE ci.note = '(voice: English version)'
   AND k.keyword = 'hand-to-hand-combat'
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish')
   AND n.gender = 'f'
-  AND TRUE
-  AND TRUE
+  
+  
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id

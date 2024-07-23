@@ -15,9 +15,9 @@ WHERE ci.note = '(voice: Japanese version)'
   AND (mc.note LIKE '%(2007)%'
        OR mc.note NOT LIKE '%(as Metro-Goldwyn-Mayer Pictures)%')
   AND n.gender = 'f'
-  AND TRUE
+  
   AND rt.role = 'actress'
-  AND TRUE
+  
   AND ci.movie_id = t.id
   AND t.id = mc.movie_id
   AND ci.movie_id = mc.movie_id

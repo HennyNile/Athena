@@ -17,7 +17,7 @@ WHERE cn.country_code != '[pl]'
   AND it2.info = 'rating'
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic', 'based-on-novel')
   AND kt.kind = 'episode'
-  AND TRUE
+  
   AND mi.info IN ('Action', 'American', 'Bulgaria', 'Crime', 'Denish', 'Denmark', 'Drama', 'English', 'Family', 'German')
   AND mi_idx.info <= '8.0'
   AND t.production_year BETWEEN 1945 AND 1956

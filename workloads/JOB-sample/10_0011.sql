@@ -14,10 +14,10 @@ WHERE cn.country_code != '[jp]'
        OR cn.name LIKE '%Warner%')
   AND ct.kind != 'production companies'
   AND k.keyword IN ('10,000-mile-club', 'alienation', 'based-on-comic')
-  AND TRUE
+  
   AND mc.note IS NOT NULL
   AND t.production_year >= 1943
-  AND TRUE
+  
   AND lt.id = ml.link_type_id
   AND ml.movie_id = t.id
   AND t.id = mk.movie_id

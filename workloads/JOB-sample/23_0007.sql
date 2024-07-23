@@ -15,7 +15,7 @@ FROM aka_name AS an,
      title AS t
 WHERE ci.note = '(written by)'
   AND cn.country_code = '[ru]'
-  AND TRUE
+  
   AND it.info = 'trivia'
   AND k.keyword IN ('10,000-mile-club', 'alienation')
   AND mi.info LIKE 'USA:%2008%'
