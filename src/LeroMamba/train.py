@@ -76,7 +76,7 @@ def train(model, optimizer, scheduler, dataloader, val_dataloader, test_dataload
         timeout_costs = []
         min_costs = []
         for trees, cost_label, weights in tqdm(val_dataloader):
-            cost = model.model(trees)
+            cost = model.model(trees.to('cuda'))
             pred = cost.view(-1)
             argmin_pred = torch.argmin(pred)
             pred_cost = cost_label[argmin_pred]

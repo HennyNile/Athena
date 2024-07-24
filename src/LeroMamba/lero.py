@@ -18,6 +18,7 @@ JOIN_TYPES = ["Nested Loop", "Hash Join", "Merge Join"]
 OTHER_TYPES = ['Gather', 'Gather Merge', 'Bitmap Index Scan', 'Memoize']
 OP_TYPES = ["Hash", "Materialize", "Sort", "Aggregate", "Incremental Sort", "Limit"] \
     + SCAN_TYPES + JOIN_TYPES + OTHER_TYPES
+OP_TYPES = SCAN_TYPES + JOIN_TYPES
 
 class IndexTreeNode:
     def __init__(self, idx: int):
@@ -203,15 +204,18 @@ class Lero:
         vecs: list[np.ndarray] = []
         node_idx = 0
         def dfs(node: dict) -> IndexTreeNode:
+            if node['Node Type'] not in OP_TYPES:
+                return dfs(node['Plans'][0])
             nonlocal node_idx
             vec = self._transform_node(node, plan_info)
             vecs.append(vec)
             idx_node = IndexTreeNode(node_idx)
             node_idx += 1
 
-            for plan in node.get('Plans', []):
-                child_idx_node = dfs(plan)
-                idx_node.append(child_idx_node)
+            if node['Node Type'] in JOIN_TYPES:
+                for plan in node.get('Plans', []):
+                    child_idx_node = dfs(plan)
+                    idx_node.append(child_idx_node)
 
             return idx_node
 
