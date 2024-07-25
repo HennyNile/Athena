@@ -18,7 +18,7 @@ JOIN_TYPES = ["Nested Loop", "Hash Join", "Merge Join"]
 OTHER_TYPES = ['Gather', 'Gather Merge', 'Bitmap Index Scan', 'Memoize']
 OP_TYPES = ["Hash", "Materialize", "Sort", "Aggregate", "Incremental Sort", "Limit"] \
     + SCAN_TYPES + JOIN_TYPES + OTHER_TYPES
-OP_TYPES = SCAN_TYPES + JOIN_TYPES
+# OP_TYPES = SCAN_TYPES + JOIN_TYPES
 
 class IndexTreeNode:
     def __init__(self, idx: int):
@@ -204,18 +204,18 @@ class Lero:
         vecs: list[np.ndarray] = []
         node_idx = 0
         def dfs(node: dict) -> IndexTreeNode:
-            if node['Node Type'] not in OP_TYPES:
-                return dfs(node['Plans'][0])
+            # if node['Node Type'] not in OP_TYPES:
+            #     return dfs(node['Plans'][0])
             nonlocal node_idx
             vec = self._transform_node(node, plan_info)
             vecs.append(vec)
             idx_node = IndexTreeNode(node_idx)
             node_idx += 1
 
-            if node['Node Type'] in JOIN_TYPES:
-                for plan in node.get('Plans', []):
-                    child_idx_node = dfs(plan)
-                    idx_node.append(child_idx_node)
+            # if node['Node Type'] in JOIN_TYPES:
+            for plan in node.get('Plans', []):
+                child_idx_node = dfs(plan)
+                idx_node.append(child_idx_node)
 
             return idx_node
 
@@ -231,19 +231,16 @@ class Lero:
     def _transform_node(self, node: dict, plan_info: PlanInfo) -> np.ndarray:
         op_type = node['Node Type']
         arr = np.zeros(self.input_feature_dim, dtype=np.float32)
-        if op_type in OP_TYPES:
-            arr[OP_TYPES.index(op_type)] = 1.
-        else:
-            raise RuntimeError(f'Unknown operator type: {op_type}')
+        arr[OP_TYPES.index(op_type)] = 1.
         have_cond = False
         if node['Node Type'] in SCAN_TYPES:
             arr[self.rel_offset + self.input_relations[node['Relation Name']]] = 1.
-            if node['Node Type'] in ['Index Scan', 'Index Only Scan'] and 'Index Cond' in node:
-                have_cond = True
-                index_cond = node['Index Cond']
-                l_rel = node['Relation Name']
-                _, r_alias, _ = self.index_cond_pattern.match(index_cond).groups()
-                r_rel, _ = plan_info.alias_map[r_alias]
+            # if node['Node Type'] in ['Index Scan', 'Index Only Scan'] and 'Index Cond' in node:
+            #     have_cond = True
+            #     index_cond = node['Index Cond']
+            #     l_rel = node['Relation Name']
+            #     _, r_alias, _ = self.index_cond_pattern.match(index_cond).groups()
+            #     r_rel, _ = plan_info.alias_map[r_alias]
         elif node['Node Type'] in JOIN_TYPES:
             if node['Node Type'] == 'Hash Join':
                 have_cond = True
@@ -330,20 +327,20 @@ class Lero:
                                 raise e
                     l_rel, _ = plan_info.alias_map[l_alias]
                     r_rel, _ = plan_info.alias_map[r_alias]
-                # else:
-                #     right_child = node['Plans'][1]
-                #     while right_child['Node Type'] not in ['Index Scan', 'Index Only Scan']:
-                #         if 'Plans' not in right_child or len(right_child['Plans']) != 1:
-                #             print(json.dumps(node, indent=4))
-                #             raise RuntimeError(f'Unexpected right child')
-                #         right_child = right_child['Plans'][0]
-                #     l_rel = right_child['Relation Name']
-                #     try:
-                #         _, r_alias, _ = self.index_cond_pattern.match(right_child['Index Cond']).groups()
-                #     except Exception as e:
-                #         print(right_child['Index Cond'])
-                #         raise e
-                #     r_rel, _ = plan_info.alias_map[r_alias]
+                else:
+                    right_child = node['Plans'][1]
+                    try:
+                        while right_child['Node Type'] not in ['Index Scan', 'Index Only Scan']:
+                            if 'Plans' not in right_child or len(right_child['Plans']) != 1:
+                                raise RuntimeError(f'Unexpected right child')
+                            right_child = right_child['Plans'][0]
+                        have_cond = True
+                    except:
+                        pass
+                    if have_cond:
+                        l_rel = right_child['Relation Name']
+                        _, r_alias, _ = self.index_cond_pattern.match(right_child['Index Cond']).groups()
+                        r_rel, _ = plan_info.alias_map[r_alias]
         if have_cond:
             arr[self.rel_offset + self.input_relations[l_rel]] = 1
             arr[self.rel_offset + self.input_relations[r_rel]] = 1
