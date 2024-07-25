@@ -175,7 +175,15 @@ def main(args: argparse.Namespace):
     else:
         test_dataloader = None
     optimizer = torch.optim.Adam(model.model.parameters(), lr=args.lr)
-    train(model, optimizer, None, dataloader, val_dataloader, test_dataloader, args.epoch)
+    def lr_lambda(warmup=50, decay=30, max_lr=200):
+        def ret(epoch):
+            if epoch < warmup:
+                return math.exp(epoch / warmup * math.log(max_lr))
+            else:
+                return (math.cos(((epoch - warmup) / decay) * math.pi) + 1) / 2 * (max_lr - 1) + 1
+        return ret
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda())
+    train(model, optimizer, scheduler, dataloader, val_dataloader, test_dataloader, args.epoch)
     os.makedirs('models', exist_ok=True)
     model.save(f'models/lero_on_{database}_{workload}_{method}_{args.valset.split(".")[0]}.pth')
 
