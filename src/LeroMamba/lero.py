@@ -154,10 +154,11 @@ class Lero:
         self.max_est_card = math.log(self.max_est_card + 1)
 
     def init_model(self) -> None:
-        self.input_feature_dim = len(OP_TYPES) + len(self.input_relations) + 2
-        self.rel_offset = len(OP_TYPES)
+        self.op_offset = 0
+        self.rel_offset = self.op_offset + len(OP_TYPES)
         self.width_offset = self.rel_offset + len(self.input_relations)
         self.rows_offset = self.width_offset + 1
+        self.input_feature_dim = self.rows_offset + 1
         self.model = LeroNet(self.input_feature_dim)
 
     def transform(self, plans: list[dict]) -> list[LeroSample]:
@@ -231,7 +232,7 @@ class Lero:
     def _transform_node(self, node: dict, plan_info: PlanInfo) -> np.ndarray:
         op_type = node['Node Type']
         arr = np.zeros(self.input_feature_dim, dtype=np.float32)
-        arr[OP_TYPES.index(op_type)] = 1.
+        arr[self.op_offset + OP_TYPES.index(op_type)] = 1.
         have_cond = False
         if node['Node Type'] in SCAN_TYPES:
             arr[self.rel_offset + self.input_relations[node['Relation Name']]] = 1.

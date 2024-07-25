@@ -8,7 +8,7 @@ class GatedFeedForward(nn.Module):
         super().__init__()
         self.fc1 = nn.Linear(input_dim, 2 * hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, input_dim)
-        self.act = nn.SiLU()
+        self.activation = nn.SiLU()
 
     def forward(self, x: BatchedTree2) -> BatchedTree2:
         y = self.fc1(x)
@@ -32,9 +32,10 @@ class MambaBlock(nn.Module):
         batched_trees.x = self.norm1(x)
         y = self.mamba(batched_trees)
         x = y + x
-        y = self.norm2(x)
-        y = self.ff(y)
-        x = y + x
+        if self.has_ff:
+            y = self.norm2(x)
+            y = self.ff(y)
+            x = y + x
         batched_trees.x = x
         return batched_trees
 
@@ -45,7 +46,7 @@ class LeroNet(torch.nn.Module):
         num_layer = 2
         self.dim = 64
         self.feature_proj = torch.nn.Linear(input_feature_dim, self.dim)
-        self.mamba_layers = nn.ModuleList([MambaBlock(self.dim) for _ in range(num_layer)])
+        self.mamba_layers = nn.ModuleList([MambaBlock(self.dim, has_ff=i != num_layer - 1) for i in range(num_layer)])
         self.batch_norm = nn.BatchNorm1d(2 * self.dim)
         self.cost_proj = torch.nn.Linear(2 * self.dim, self.dim)
         self.output_act = nn.LeakyReLU()

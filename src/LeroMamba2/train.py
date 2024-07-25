@@ -183,15 +183,12 @@ def main(args: argparse.Namespace):
                 return (math.cos(((epoch - warmup) / decay) * math.pi) + 1) / 2 * (max_lr - 1) + 1
         return ret
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda())
-    def lr_lambda(warmup=90, decay=30, max_lr=2000):
+    def lr_lambda(warmup=50, decay=30, max_lr=200):
         def ret(epoch):
             if epoch < warmup:
                 return math.exp(epoch / warmup * math.log(max_lr))
             else:
-                epoch -= warmup
-                while epoch >= decay:
-                    epoch -= decay
-                return (math.cos((epoch / decay) * math.pi) + 1) / 2 * (max_lr - 1) + 1
+                return (math.cos(((epoch - warmup) / decay) * math.pi) + 1) / 2 * (max_lr - 1) + 1
         return ret
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda())
     train(model, optimizer, scheduler, dataloader, val_dataloader, test_dataloader, args.epoch)
