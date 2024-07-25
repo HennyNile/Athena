@@ -224,6 +224,8 @@ class Lero:
         return result
 
     cond_pattern = re.compile(r'\(([a-zA-Z0-9_]+).([a-zA-Z0-9_]+) = ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)\)')
+    cond_pattern2 = re.compile(r'\(\(([a-zA-Z0-9_]+).([a-zA-Z0-9_]+) = ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)\) AND \(([a-zA-Z0-9_]+).([a-zA-Z0-9_]+) = ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)\)\)')
+    cond_pattern3 = re.compile(r'\(\(([a-zA-Z0-9_]+).([a-zA-Z0-9_]+) = ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)\) AND \(([a-zA-Z0-9_]+).([a-zA-Z0-9_]+) = ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)\) AND \(([a-zA-Z0-9_]+).([a-zA-Z0-9_]+) = ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)\)\)')
     index_cond_pattern = re.compile(r'\(([a-zA-Z0-9_]+) = ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)\)')
 
     def _transform_node(self, node: dict, plan_info: PlanInfo) -> np.ndarray:
@@ -233,8 +235,118 @@ class Lero:
             arr[OP_TYPES.index(op_type)] = 1.
         else:
             raise RuntimeError(f'Unknown operator type: {op_type}')
+        have_cond = False
         if node['Node Type'] in SCAN_TYPES:
             arr[self.rel_offset + self.input_relations[node['Relation Name']]] = 1.
+            if node['Node Type'] in ['Index Scan', 'Index Only Scan'] and 'Index Cond' in node:
+                have_cond = True
+                index_cond = node['Index Cond']
+                l_rel = node['Relation Name']
+                _, r_alias, _ = self.index_cond_pattern.match(index_cond).groups()
+                r_rel, _ = plan_info.alias_map[r_alias]
+        elif node['Node Type'] in JOIN_TYPES:
+            if node['Node Type'] == 'Hash Join':
+                have_cond = True
+                join_cond = node['Hash Cond']
+                try:
+                    l_alias, _, r_alias, _ = self.cond_pattern.match(join_cond).groups()
+                except Exception as e:
+                    try:
+                        l_alias, _, r_alias, _, l2_alias, _, r2_alias, _ = self.cond_pattern2.match(join_cond).groups()
+                        l2_rel, _ = plan_info.alias_map[l2_alias]
+                        r2_rel, _ = plan_info.alias_map[r2_alias]
+                        arr[self.rel_offset + self.input_relations[l2_rel]] = 1
+                        arr[self.rel_offset + self.input_relations[r2_rel]] = 1
+                    except Exception as e:
+                        try:
+                            l_alias, _, r_alias, _, l2_alias, _, r2_alias, _, l3_alias, _, r3_alias, _ = self.cond_pattern3.match(join_cond).groups()
+                            l2_rel, _ = plan_info.alias_map[l2_alias]
+                            r2_rel, _ = plan_info.alias_map[r2_alias]
+                            l3_rel, _ = plan_info.alias_map[l3_alias]
+                            r3_rel, _ = plan_info.alias_map[r3_alias]
+                            arr[self.rel_offset + self.input_relations[l2_rel]] = 1
+                            arr[self.rel_offset + self.input_relations[r2_rel]] = 1
+                            arr[self.rel_offset + self.input_relations[l3_rel]] = 1
+                            arr[self.rel_offset + self.input_relations[r3_rel]] = 1
+                        except Exception as e:
+                            print(join_cond)
+                            raise e
+                l_rel, _ = plan_info.alias_map[l_alias]
+                r_rel, _ = plan_info.alias_map[r_alias]
+            elif node['Node Type'] == 'Merge Join':
+                have_cond = True
+                join_cond = node['Merge Cond']
+                try:
+                    l_alias, _, r_alias, _ = self.cond_pattern.match(join_cond).groups()
+                except Exception as e:
+                    try:
+                        l_alias, _, r_alias, _, l2_alias, _, r2_alias, _ = self.cond_pattern2.match(join_cond).groups()
+                        l2_rel, _ = plan_info.alias_map[l2_alias]
+                        r2_rel, _ = plan_info.alias_map[r2_alias]
+                        arr[self.rel_offset + self.input_relations[l2_rel]] = 1
+                        arr[self.rel_offset + self.input_relations[r2_rel]] = 1
+                    except Exception as e:
+                        try:
+                            l_alias, _, r_alias, _, l2_alias, _, r2_alias, _, l3_alias, _, r3_alias, _ = self.cond_pattern3.match(join_cond).groups()
+                            l2_rel, _ = plan_info.alias_map[l2_alias]
+                            r2_rel, _ = plan_info.alias_map[r2_alias]
+                            l3_rel, _ = plan_info.alias_map[l3_alias]
+                            r3_rel, _ = plan_info.alias_map[r3_alias]
+                            arr[self.rel_offset + self.input_relations[l2_rel]] = 1
+                            arr[self.rel_offset + self.input_relations[r2_rel]] = 1
+                            arr[self.rel_offset + self.input_relations[l3_rel]] = 1
+                            arr[self.rel_offset + self.input_relations[r3_rel]] = 1
+                        except Exception as e:
+                            print(join_cond)
+                            raise e
+                l_rel, _ = plan_info.alias_map[l_alias]
+                r_rel, _ = plan_info.alias_map[r_alias]
+            elif node['Node Type'] == 'Nested Loop':
+                if 'Join Filter' in node:
+                    have_cond = True
+                    join_cond = node['Join Filter']
+                    try:
+                        l_alias, _, r_alias, _ = self.cond_pattern.match(join_cond).groups()
+                    except Exception as e:
+                        try:
+                            l_alias, _, r_alias, _, l2_alias, _, r2_alias, _ = self.cond_pattern2.match(join_cond).groups()
+                            l2_rel, _ = plan_info.alias_map[l2_alias]
+                            r2_rel, _ = plan_info.alias_map[r2_alias]
+                            arr[self.rel_offset + self.input_relations[l2_rel]] = 1
+                            arr[self.rel_offset + self.input_relations[r2_rel]] = 1
+                        except Exception as e:
+                            try:
+                                l_alias, _, r_alias, _, l2_alias, _, r2_alias, _, l3_alias, _, r3_alias, _ = self.cond_pattern3.match(join_cond).groups()
+                                l2_rel, _ = plan_info.alias_map[l2_alias]
+                                r2_rel, _ = plan_info.alias_map[r2_alias]
+                                l3_rel, _ = plan_info.alias_map[l3_alias]
+                                r3_rel, _ = plan_info.alias_map[r3_alias]
+                                arr[self.rel_offset + self.input_relations[l2_rel]] = 1
+                                arr[self.rel_offset + self.input_relations[r2_rel]] = 1
+                                arr[self.rel_offset + self.input_relations[l3_rel]] = 1
+                                arr[self.rel_offset + self.input_relations[r3_rel]] = 1
+                            except Exception as e:
+                                print(join_cond)
+                                raise e
+                    l_rel, _ = plan_info.alias_map[l_alias]
+                    r_rel, _ = plan_info.alias_map[r_alias]
+                # else:
+                #     right_child = node['Plans'][1]
+                #     while right_child['Node Type'] not in ['Index Scan', 'Index Only Scan']:
+                #         if 'Plans' not in right_child or len(right_child['Plans']) != 1:
+                #             print(json.dumps(node, indent=4))
+                #             raise RuntimeError(f'Unexpected right child')
+                #         right_child = right_child['Plans'][0]
+                #     l_rel = right_child['Relation Name']
+                #     try:
+                #         _, r_alias, _ = self.index_cond_pattern.match(right_child['Index Cond']).groups()
+                #     except Exception as e:
+                #         print(right_child['Index Cond'])
+                #         raise e
+                #     r_rel, _ = plan_info.alias_map[r_alias]
+        if have_cond:
+            arr[self.rel_offset + self.input_relations[l_rel]] = 1
+            arr[self.rel_offset + self.input_relations[r_rel]] = 1
         arr[self.width_offset] = node['Plan Width']
         # arr[self.width_offset] = self._norm_width(node['Plan Width'])
         arr[self.rows_offset] = self._norm_est_card(node['Plan Rows'])
