@@ -1,4 +1,5 @@
 import argparse
+import copy
 import os
 import math
 import re
@@ -6,7 +7,7 @@ import json
 
 import torch
 import torch.nn.functional as F
-from mamba_ssm import BatchedTree
+from mamba_ssm import BatchedTree2
 from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter()
 import numpy as np
@@ -18,7 +19,7 @@ JOIN_TYPES = ["Nested Loop", "Hash Join", "Merge Join"]
 OTHER_TYPES = ['Gather', 'Gather Merge', 'Bitmap Index Scan', 'Memoize']
 OP_TYPES = ["Hash", "Materialize", "Sort", "Aggregate", "Incremental Sort", "Limit"] \
     + SCAN_TYPES + JOIN_TYPES + OTHER_TYPES
-# OP_TYPES = SCAN_TYPES + JOIN_TYPES
+OP_TYPES = SCAN_TYPES + JOIN_TYPES
 
 class IndexTreeNode:
     def __init__(self, idx: int):
@@ -37,11 +38,28 @@ class IndexTreeNode:
     
     def __len__(self) -> int:
         return len(self.children)
+    
+    def __str__(self) -> str:
+        # a tree representation
+        def dfs(node: IndexTreeNode, is_last: list[bool]):
+            indent = ''
+            if len(is_last) > 0:
+                for i in range(len(is_last) - 1):
+                    indent += '    ' if is_last[i] else '│   '
+                indent += '└── ' if is_last[-1] else '├── '
+            result = indent + f'{node.idx}\n'
+            for i, child in enumerate(node.children):
+                result += dfs(child, is_last + [i == len(node.children) - 1])
+            return result
+        result = dfs(self, [])
+        return result
 
 class Tree:
-    def __init__(self, x: np.ndarray, indices: IndexTreeNode):
-        self.x = x
-        self.indices = indices
+    def __init__(self, left_first_x: np.ndarray, right_first_x: np.ndarray, left_first_indices: IndexTreeNode, right_first_indices: IndexTreeNode):
+        self.left_first_x = left_first_x
+        self.right_first_x = right_first_x
+        self.left_first_indices = left_first_indices
+        self.right_first_indices = right_first_indices
 
 class LeroSample:
     def __init__(self, tree: Tree, plan: dict):
@@ -83,46 +101,52 @@ def get_alias_map(sample) -> tuple[PlanInfo, int]:
     dfs(root)
     return PlanInfo(alias_map, relation_names), max_card
 
-def batch_trees(trees: list[Tree]) -> BatchedTree:
+def batch_trees(trees: list[Tree]) -> BatchedTree2:
     batch_size = len(trees)
-    max_len = max([tree.x.shape[0] for tree in trees])
-    dim = trees[0].x.shape[1]
-    x = np.zeros((batch_size, max_len, dim), dtype=np.float32)
-    conv_indices = np.zeros((batch_size, 4 * max_len), dtype=np.int64)
-    indices_list: list[list[tuple[int, int]]] = []
-    state_indices: list[list[tuple[int, int]]] = []
+    max_len = max([tree.left_first_x.shape[0] for tree in trees])
+    dim = trees[0].left_first_x.shape[1]
+    x = np.zeros((2 * batch_size, max_len, dim), dtype=np.float32)
+    conv_indices = np.zeros((2 * batch_size, 4 * max_len), dtype=np.int64)
+    output_indices = np.zeros(2 * batch_size, dtype=np.int64)
     for i, tree in enumerate(trees):
-        x[i, :tree.x.shape[0]] = tree.x
-        def dfs(node: IndexTreeNode, level: int = 0):
-            conv_indices[i, node.idx * 4] = node.idx + 1
-            if level >= len(indices_list):
-                indices_list.append([])
-                state_indices.append([])
-            indices_list[level].append((i, node.idx))
-            state_indices[level].append((0, 0))
-            level_index = len(state_indices[level])
+        assert tree.left_first_x.shape[0] == tree.right_first_x.shape[0]
+        seq_len = tree.left_first_x.shape[0]
+        x[i * 2, :seq_len] = tree.left_first_x
+        x[i * 2 + 1, :seq_len] = tree.right_first_x
+        output_indices[i * 2] = tree.left_first_indices.idx
+        output_indices[i * 2 + 1] = tree.right_first_indices.idx
+        def left_first_dfs(node: IndexTreeNode):
+            conv_indices[i * 2, node.idx * 4] = node.idx + 1
             if len(node) == 0:
                 pass
             elif len(node) == 1:
-                conv_indices[i, node.idx * 4 + 1] = node.children[0].idx + 1
-                child_level_index = dfs(node.children[0], level + 1)
-                state_indices[level][level_index - 1] = (child_level_index, child_level_index)
+                conv_indices[i * 2, node.idx * 4 + 1] = node.children[0].idx + 1
+                left_first_dfs(node.children[0])
             else:
                 assert len(node) <= 2
-                conv_indices[i, node.idx * 4 + 2] = node.children[0].idx + 1
-                conv_indices[i, node.idx * 4 + 3] = node.children[1].idx + 1
-                child_level_index1 = dfs(node.children[0], level + 1)
-                child_level_index2 = dfs(node.children[1], level + 1)
-                state_indices[level][level_index - 1] = (child_level_index1, child_level_index2)
-            return level_index
-        dfs(tree.indices)
-    indices_list = [np.array(l, dtype=np.int64) for l in indices_list]
-    state_indices = [np.array(l, dtype=np.int64) for l in state_indices]
+                conv_indices[i * 2, node.idx * 4 + 2] = node.children[0].children[0].idx + 1
+                conv_indices[i * 2, node.idx * 4 + 3] = node.children[1].children[0].idx + 1
+                left_first_dfs(node.children[0])
+                left_first_dfs(node.children[1])
+        def right_first_dfs(node: IndexTreeNode):
+            conv_indices[i * 2 + 1, node.idx * 4] = node.idx + 1
+            if len(node) == 0:
+                pass
+            elif len(node) == 1:
+                conv_indices[i * 2 + 1, node.idx * 4 + 1] = node.children[0].idx + 1
+                right_first_dfs(node.children[0])
+            else:
+                assert len(node) <= 2
+                conv_indices[i * 2 + 1, node.idx * 4 + 3] = node.children[0].children[0].idx + 1
+                conv_indices[i * 2 + 1, node.idx * 4 + 2] = node.children[1].children[0].idx + 1
+                right_first_dfs(node.children[0])
+                right_first_dfs(node.children[1])
+        left_first_dfs(tree.left_first_indices)
+        right_first_dfs(tree.right_first_indices)
     x = torch.tensor(x)
-    indices_list = [torch.tensor(l) for l in indices_list]
-    state_indices = [torch.tensor(l) for l in state_indices]
     conv_indices = torch.tensor(conv_indices)
-    return BatchedTree(x, indices_list, state_indices, conv_indices)
+    output_indices = torch.tensor(output_indices)
+    return BatchedTree2(x, conv_indices, output_indices)
 
 class Lero:
     def __init__(self, table_map):
@@ -154,9 +178,12 @@ class Lero:
         self.max_est_card = math.log(self.max_est_card + 1)
 
     def init_model(self) -> None:
-        self.op_offset = 0
+        self.lr_offset = 0
+        self.op_offset = self.lr_offset + 2
         self.rel_offset = self.op_offset + len(OP_TYPES)
-        self.width_offset = self.rel_offset + len(self.input_relations)
+        self.lcond_offset = self.rel_offset + len(self.input_relations)
+        self.rcond_offset = self.lcond_offset + len(self.input_relations)
+        self.width_offset = self.rcond_offset + len(self.input_relations)
         self.rows_offset = self.width_offset + 1
         self.input_feature_dim = self.rows_offset + 1
         self.model = LeroNet(self.input_feature_dim)
@@ -202,26 +229,63 @@ class Lero:
 
     def _transform_plan(self, plan: dict) -> LeroSample:
         plan_info, _ = get_alias_map(plan)
-        vecs: list[np.ndarray] = []
+        left_first_vecs: list[np.ndarray] = []
+        right_first_vecs: list[np.ndarray] = []
         node_idx = 0
-        def dfs(node: dict) -> IndexTreeNode:
-            # if node['Node Type'] not in OP_TYPES:
-            #     return dfs(node['Plans'][0])
+        def left_first_dfs(node: dict) -> IndexTreeNode:
+            if node['Node Type'] not in OP_TYPES:
+                return left_first_dfs(node['Plans'][0])
             nonlocal node_idx
-            vec = self._transform_node(node, plan_info)
-            vecs.append(vec)
+
+            childrens = []
+            if node['Node Type'] in JOIN_TYPES:
+                for i, plan in enumerate(node['Plans']):
+                    child_idx_node = left_first_dfs(plan)
+                    idx_node = IndexTreeNode(node_idx)
+                    node_idx += 1
+                    idx_node.append(child_idx_node)
+                    childrens.append(idx_node)
+                    pos_vec = np.zeros(self.input_feature_dim, dtype=np.float32)
+                    pos_vec[self.lr_offset + i] = 1.
+                    left_first_vecs.append(pos_vec)
             idx_node = IndexTreeNode(node_idx)
             node_idx += 1
+            for child in childrens:
+                idx_node.append(child)
+            vec = self._transform_node(node, plan_info)
+            left_first_vecs.append(vec)
 
-            # if node['Node Type'] in JOIN_TYPES:
-            for plan in node.get('Plans', []):
-                child_idx_node = dfs(plan)
-                idx_node.append(child_idx_node)
+            return idx_node
+        
+        def right_first_dfs(node: dict) -> IndexTreeNode:
+            if node['Node Type'] not in OP_TYPES:
+                return right_first_dfs(node['Plans'][-1])
+            nonlocal node_idx
+
+            childrens = []
+            if node['Node Type'] in JOIN_TYPES:
+                for i, plan in enumerate(reversed(node['Plans'])):
+                    child_idx_node = right_first_dfs(plan)
+                    idx_node = IndexTreeNode(node_idx)
+                    node_idx += 1
+                    idx_node.append(child_idx_node)
+                    childrens.append(idx_node)
+                    pos_vec = np.zeros(self.input_feature_dim, dtype=np.float32)
+                    pos_vec[self.lr_offset + 1 - i] = 1.
+                    right_first_vecs.append(pos_vec)
+            idx_node = IndexTreeNode(node_idx)
+            node_idx += 1
+            for child in childrens:
+                idx_node.append(child)
+            vec = self._transform_node(node, plan_info)
+            right_first_vecs.append(vec)
 
             return idx_node
 
-        root_idx = dfs(plan['Plan'])
-        result = LeroSample(Tree(np.stack(vecs), root_idx), plan)
+        left_first_idx = left_first_dfs(plan['Plan'])
+        node_idx = 0
+        right_first_idx = right_first_dfs(plan['Plan'])
+        result = LeroSample(Tree(np.stack(left_first_vecs), np.stack(right_first_vecs), left_first_idx, right_first_idx), plan)
         return result
 
     cond_pattern = re.compile(r'\(([a-zA-Z0-9_]+).([a-zA-Z0-9_]+) = ([a-zA-Z0-9_]+).([a-zA-Z0-9_]+)\)')

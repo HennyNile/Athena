@@ -183,6 +183,14 @@ def main(args: argparse.Namespace):
                 return (math.cos(((epoch - warmup) / decay) * math.pi) + 1) / 2 * (max_lr - 1) + 1
         return ret
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda())
+    def lr_lambda(warmup=50, decay=30, max_lr=200):
+        def ret(epoch):
+            if epoch < warmup:
+                return math.exp(epoch / warmup * math.log(max_lr))
+            else:
+                return (math.cos(((epoch - warmup) / decay) * math.pi) + 1) / 2 * (max_lr - 1) + 1
+        return ret
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda())
     train(model, optimizer, scheduler, dataloader, val_dataloader, test_dataloader, args.epoch)
     os.makedirs('models', exist_ok=True)
     model.save(f'models/lero_on_{database}_{workload}_{method}_{args.valset.split(".")[0]}.pth')
@@ -206,5 +214,5 @@ if __name__ == '__main__':
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    torch.use_deterministic_algorithms(True)
+    torch.use_deterministic_algorithms(True, warn_only=True)
     main(args)
