@@ -30,7 +30,8 @@ def read_dataset(dataset_path, true_card=False):
                     if 'Execution Time' not in plan:
                         plan['Timeout Time'] = timeout_time(sample[0]['Execution Time'])
                 samples.append(sample)
-            samples.append(sample)
+            else:
+                samples.append(sample)
     return names, samples
 
 def load_Lero_options(db, workload):
@@ -60,4 +61,4 @@ def load_Bao_options(db, workload):
     return names, options
 
 if __name__ == '__main__':
-    naems, options = load_Lero_options('imdb', 'JOB-sample')
+    names, options = load_Lero_options('imdb', 'JOB-sample')
