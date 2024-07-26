@@ -61,4 +61,4 @@ def load_Bao_options(db, workload):
     return names, options
 
 if __name__ == '__main__':
-    naems, options = load_Lero_options('imdb', 'JOB-sample')
+    names, options = load_Lero_options('imdb', 'JOB-sample')
