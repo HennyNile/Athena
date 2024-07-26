@@ -31,7 +31,7 @@ def main(args: argparse.Namespace):
                 continue
             timeout = 0
             samples = []
-            print(f"Generate plans of {name}")
+            print(f"Generate plans of {name}, query {query_idx}.")
             db.get_plan(query, ['SET enable_join_order_plans = on', 'SET geqo_threshold = 20'])
             join_order_hints = list(set(open(JOP_plans_filepath, 'r').readlines()))
             for i in tqdm(range(len(join_order_hints) + 1)):
@@ -43,10 +43,7 @@ def main(args: argparse.Namespace):
                     hints = ['SET enable_join_order_plans = off', 'SET geqo_threshold = 20']
                 if not args.generate_candidate_plans:
                     try:
-                        try:
-                            db.get_result(query, hints, timeout=timeout)
-                        except psycopg2.errors.QueryCanceled:
-                            db.rollback()
+                        db.get_result(query, hints, timeout=timeout)
                         sample = db.get_result(query, hints, timeout=timeout)
                         if timeout == 0:
                             timeout = 4 * sample['Execution Time']
@@ -55,8 +52,8 @@ def main(args: argparse.Namespace):
                             elif timeout <= 5000:
                                 timeout = 5000
                     except psycopg2.errors.QueryCanceled:
-                        sample = db.get_plan(query, hints)
                         db.rollback()
+                        sample = db.get_plan(query, hints)
                     samples.append(sample)
                 else:
                     sample = db.get_plan(query, hints)

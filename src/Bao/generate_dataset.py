@@ -113,25 +113,31 @@ def main(args: argparse.Namespace):
             print(f"Generate plans of {name}")
             for arm in tqdm(arms):
                 hints = arm_idx_to_hints(arm)
-                try:
-                    try:
-                        db.get_result(query, hints, timeout=timeout)
-                    except psycopg2.errors.QueryCanceled:
-                        db.rollback()
-                    sample = db.get_result(query, hints, timeout=timeout)
-                    if timeout == 0:
-                        timeout = 4 * sample['Execution Time']
-                        if timeout >= 240000:
-                            timeout = max(sample['Execution Time'], 240000)
-                        elif timeout <= 5000:
-                            timeout = 5000
-                except psycopg2.errors.QueryCanceled:
+                if args.generate_candidate_plans:
                     sample = db.get_plan(query, hints)
-                    db.rollback()
+                else:
+                    try:
+                        try:
+                            db.get_result(query, hints, timeout=timeout)
+                        except psycopg2.errors.QueryCanceled:
+                            db.rollback()
+                        sample = db.get_result(query, hints, timeout=timeout)
+                        if timeout == 0:
+                            timeout = 4 * sample['Execution Time']
+                            if timeout >= 240000:
+                                timeout = max(sample['Execution Time'], 240000)
+                            elif timeout <= 5000:
+                                timeout = 5000
+                    except psycopg2.errors.QueryCanceled:
+                        sample = db.get_plan(query, hints)
+                        db.rollback()
                 samples.append(sample)
             query_path = os.path.join(dataset_path, f'query_{query_idx:04d}.json')
             with open(query_path, 'w') as f:
                 json.dump(samples, f)
+            option_path = os.path.join(dataset_path, f'option_{query_idx:04d}.json')
+            with open(option_path, 'w') as f:
+                json.dump([arm if arm != None else None for arm in arms], f)
 
 
 if __name__ == '__main__':
@@ -139,5 +145,6 @@ if __name__ == '__main__':
     parser.add_argument('--database', type=str, default='imdb')
     parser.add_argument('--workload', type=str, default='JOB')
     parser.add_argument('--query_begin', type=int, default=0)
+    parser.add_argument('--generate_candidate_plans', type=bool, default=False)
     args = parser.parse_args()
     main(args)

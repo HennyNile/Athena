@@ -118,6 +118,9 @@ def main(args: argparse.Namespace):
             query_path = os.path.join(dataset_path, f'query_{query_idx:04d}.json')
             with open(query_path, 'w') as f:
                 json.dump(samples, f)
+            option_path = os.path.join(dataset_path, f'option_{query_idx:04d}.json')
+            with open(option_path, 'w') as f:
+                json.dump([[option.num_tables, option.swing_factor] if option != None else None for option in options], f)
 
 
 if __name__ == '__main__':

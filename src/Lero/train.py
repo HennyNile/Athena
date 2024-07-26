@@ -157,10 +157,12 @@ if __name__ == '__main__':
     parser.add_argument('--epoch', type=int, default=100)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--valset', type=str, default='val.json')
+    parser.add_argument('--cuda', type=int, default=0)
     args = parser.parse_args()
     seed = args.seed
     random.seed(seed)
     np.random.seed(seed)
+    torch.cuda.set_device(args.cuda)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
