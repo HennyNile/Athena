@@ -215,7 +215,7 @@ class Lero:
 
     def _transform_samples(self, samples: list[LeroSample]):
         times = [sample.plan.get('Execution Time', torch.inf) for sample in samples]
-        weights = [sample.plan['Execution Time'] if 'Execution Time' in sample.plan else sample.plan['Timeout Time'] for sample in samples]
+        weights = [sample.plan['Execution Time'] if 'Execution Time' in sample.plan else sample.plan.get('Timeout Time', torch.inf) for sample in samples]
         times = torch.tensor(times, dtype=torch.float32, device=torch.device('cuda'))
         weights = torch.tensor(weights, dtype=torch.float32, device=torch.device('cuda'))
         trees = batch_trees([sample.tree for sample in samples])
@@ -331,10 +331,10 @@ class Lero:
                             arr[self.rel_offset + self.input_relations[l3_rel]] = 1
                             arr[self.rel_offset + self.input_relations[r3_rel]] = 1
                         except Exception as e:
-                            print(join_cond)
-                            raise e
-                l_rel, _ = plan_info.alias_map[l_alias]
-                r_rel, _ = plan_info.alias_map[r_alias]
+                            have_cond = False
+                if have_cond:
+                    l_rel, _ = plan_info.alias_map[l_alias]
+                    r_rel, _ = plan_info.alias_map[r_alias]
             elif node['Node Type'] == 'Merge Join':
                 have_cond = True
                 join_cond = node['Merge Cond']
@@ -359,10 +359,10 @@ class Lero:
                             arr[self.rel_offset + self.input_relations[l3_rel]] = 1
                             arr[self.rel_offset + self.input_relations[r3_rel]] = 1
                         except Exception as e:
-                            print(join_cond)
-                            raise e
-                l_rel, _ = plan_info.alias_map[l_alias]
-                r_rel, _ = plan_info.alias_map[r_alias]
+                            have_cond = False
+                if have_cond:
+                    l_rel, _ = plan_info.alias_map[l_alias]
+                    r_rel, _ = plan_info.alias_map[r_alias]
             elif node['Node Type'] == 'Nested Loop':
                 if 'Join Filter' in node:
                     have_cond = True
@@ -388,10 +388,10 @@ class Lero:
                                 arr[self.rel_offset + self.input_relations[l3_rel]] = 1
                                 arr[self.rel_offset + self.input_relations[r3_rel]] = 1
                             except Exception as e:
-                                print(join_cond)
-                                raise e
-                    l_rel, _ = plan_info.alias_map[l_alias]
-                    r_rel, _ = plan_info.alias_map[r_alias]
+                                have_cond = False
+                    if have_cond:
+                        l_rel, _ = plan_info.alias_map[l_alias]
+                        r_rel, _ = plan_info.alias_map[r_alias]
                 else:
                     right_child = node['Plans'][1]
                     try:
@@ -403,9 +403,11 @@ class Lero:
                     except:
                         pass
                     if have_cond:
-                        l_rel = right_child['Relation Name']
-                        _, r_alias, _ = self.index_cond_pattern.match(right_child['Index Cond']).groups()
-                        r_rel, _ = plan_info.alias_map[r_alias]
+                        try:
+                            _, r_alias, _ = self.index_cond_pattern.match(right_child['Index Cond']).groups()
+                            r_rel, _ = plan_info.alias_map[r_alias]
+                        except Exception as e:
+                            have_cond = False
         if have_cond:
             arr[self.rel_offset + self.input_relations[l_rel]] = 1
             arr[self.rel_offset + self.input_relations[r_rel]] = 1
