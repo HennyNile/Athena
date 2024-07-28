@@ -45,7 +45,7 @@ def tailr_loss_with_logits(input: torch.Tensor, target: torch.Tensor, weight: to
     else:
         return torch.mean(target * pos + (1 - target) * neg) / (1 - gamma)
 
-def train(model, optimizer, scheduler, dataloader, val_dataloader, test_dataloader, num_epochs, logdir):
+def train(model, optimizer, scheduler, dataloader, val_dataloader, test_dataloader, num_epochs, logdir, alpha, gamma):
     with open(os.path.join(logdir, 'output.txt'), 'a') as logfile:
         for epoch in range(num_epochs):
             model.model.cuda()
@@ -57,10 +57,11 @@ def train(model, optimizer, scheduler, dataloader, val_dataloader, test_dataload
                 label = cost_label.view(-1, 2)
                 weights = weights.view(-1, 2)
                 weights = torch.abs(weights[:,0] - weights[:,1])
+                weights = weights ** alpha
                 weights = weights / weights.sum()
                 pred = pred[:,0] - pred[:,1]
                 label = (label[:,0] > label[:,1]).float()
-                loss = tailr_loss_with_logits(pred, label, weights, gamma=0.9)
+                loss = tailr_loss_with_logits(pred, label, weights, gamma)
                 losses.append(loss.item())
                 optimizer.zero_grad()
                 loss.backward()
@@ -190,7 +191,7 @@ def main(args: argparse.Namespace):
                 return (math.cos(((epoch - warmup) / decay) * math.pi) + 1) / 2 * (max_lr - 1) + 1
         return ret
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda())
-    train(model, optimizer, scheduler, dataloader, val_dataloader, test_dataloader, args.epoch, args.logdir)
+    train(model, optimizer, scheduler, dataloader, val_dataloader, test_dataloader, args.epoch, args.logdir, args.alpha, args.gamma)
     os.makedirs('models', exist_ok=True)
     model.save(f'models/lero_on_{database}_{workload}_{method}_{args.valset.split(".")[0]}.pth')
 
@@ -206,6 +207,8 @@ if __name__ == '__main__':
     parser.add_argument('--valset', type=str, default='val.json')
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--logdir', type=str, default=f'logs/{timestamp_str}')
+    parser.add_argument('--alpha', type=float, default=1)
+    parser.add_argument('--gamma', type=float, default=0.9)
     args = parser.parse_args()
     os.makedirs(args.logdir, exist_ok=True)
     os.makedirs(os.path.join(args.logdir, 'models'), exist_ok=True)
