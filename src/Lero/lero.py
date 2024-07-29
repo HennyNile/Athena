@@ -85,9 +85,11 @@ class Lero:
 
     def _transform_samples(self, samples: list[LeroSample]):
         times = [sample.plan.get('Execution Time', torch.inf) for sample in samples]
+        weights = [sample.plan['Execution Time'] if 'Execution Time' in sample.plan else sample.plan.get('Timeout Time', torch.inf) for sample in samples]
         times = torch.tensor(times, dtype=torch.float32, device=torch.device('cuda'))
+        weights = torch.tensor(weights, dtype=torch.float32, device=torch.device('cuda'))
         trees = prepare_trees(samples, lambda x: x.feature, lambda x: x.left, lambda x: x.right, True, torch.device('cuda'))
-        return trees, times
+        return trees, times, weights
 
     def _norm_est_card(self, est_card: float) -> float:
         return (math.log(est_card + 1) - self.min_est_card) / (self.max_est_card - self.min_est_card)

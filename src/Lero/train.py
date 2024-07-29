@@ -20,6 +20,7 @@ writer = SummaryWriter()
 from lero import Lero
 
 sys.path.append('.')
+from src.utils.time_utils import get_current_time
 from src.utils.dataset_utils import read_dataset
 from src.utils.db_utils import DBConn
 from src.utils.sampler_utils import PairwiseSampler, QuerySampler
@@ -36,74 +37,95 @@ class PlanDataset(Dataset):
     def __getitem__(self, idx):
         return self.samples[idx]
 
-def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epochs):
-    for epoch in range(num_epochs):
-        model.model.cuda()
-        model.model.train()
-        losses = []
-        for trees, cost_label in tqdm(dataloader):
-            cost = model.model(trees)
-            pred = cost.view(-1, 2)
-            label = cost_label.view(-1, 2)
-            # loss = ((label / label.sum(dim=1, keepdim=True)).nan_to_num(1.) * pred.softmax(dim=1)).sum()
-            pred = pred[:,0] - pred[:,1]
-            label = (label[:,0] > label[:,1]).float()
-            loss = F.binary_cross_entropy_with_logits(pred, label)
-            losses.append(loss.item())
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-        loss = sum(losses) / len(losses)
-        writer.add_scalar('train/cost_loss', loss, epoch)
-        print(f'Epoch {epoch}, loss: {loss}')
+def tailr_loss_with_logits(input: torch.Tensor, target: torch.Tensor, weight: torch.Tensor|None = None, gamma: float = 0.1):
+    pos = -torch.log(gamma + (1 - gamma) * torch.sigmoid(input))
+    neg = -torch.log(gamma + (1 - gamma) * (1 - torch.sigmoid(input)))
+    if weight is not None:
+        return torch.sum(weight * (target * pos + (1 - target) * neg)) / (1 - gamma)
+    else:
+        return torch.mean(target * pos + (1 - target) * neg) / (1 - gamma)
 
-        model.model.eval()
-        losses = []
-        pred_costs = []
-        min_costs = []
-        for trees, cost_label in tqdm(val_dataloader):
-            cost = model.model(trees)
-            pred = cost.view(-1)
-            argmin_pred = torch.argmin(pred)
-            pred_cost = cost_label[argmin_pred]
-            min_cost = torch.min(cost_label)
-            pred_costs.append(pred_cost.item())
-            min_costs.append(min_cost.item())
-        if len(pred_costs) != 0:
-            total_pred_cost = sum(pred_costs)
-            total_min_cost = sum(min_costs)
-            ability = total_min_cost / total_pred_cost
-            writer.add_scalar('val/ability', ability, epoch)
-            print(f'Validation ability: {ability * 100}%', flush=True)
+def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epochs, logdir, alpha, gamma):
+    with open(os.path.join(logdir, 'output.txt'), 'a') as logfile:
+        for epoch in range(num_epochs):
+            model.model.cuda()
+            model.model.train()
+            losses = []
+            for trees, cost_label, weights in tqdm(dataloader):
+                cost = model.model(trees)
+                pred = cost.view(-1, 2)
+                label = cost_label.view(-1, 2)
+                weights = weights.view(-1, 2)
+                weights = torch.abs(weights[:,0] - weights[:,1])
+                weights = weights ** alpha
+                weights = weights / weights.sum()
+                pred = pred[:,0] - pred[:,1]
+                label = (label[:,0] > label[:,1]).float()
+                if gamma == 0:
+                    loss = F.binary_cross_entropy_with_logits(pred, label, weight=weights, reduction='sum')
+                else:
+                    loss = tailr_loss_with_logits(pred, label, weights, gamma)
+                losses.append(loss.item())
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+            model.save(os.path.join(logdir, 'models', f'{epoch}.pt'))
+            loss = sum(losses) / len(losses)
+            writer.add_scalar('train/cost_loss', loss, epoch)
+            logfile.write(f'Epoch {epoch}, loss: {loss}\n')
 
-        if test_dataloader is not None:
+            model.model.eval()
             losses = []
             pred_costs = []
-            timeout_costs = []
             min_costs = []
-            for trees, cost_label in tqdm(test_dataloader):
+            for trees, cost_label, weights in tqdm(val_dataloader):
                 cost = model.model(trees)
                 pred = cost.view(-1)
                 argmin_pred = torch.argmin(pred)
                 pred_cost = cost_label[argmin_pred]
                 min_cost = torch.min(cost_label)
-                if pred_cost.item() == float('inf'):
-                    default = cost_label[0].item()
-                    timeout_cost = 4 * default
-                    if timeout_cost >= 240000:
-                        timeout_cost = max(default, 240000)
-                    elif timeout_cost <= 5000:
-                        timeout_cost = 5000
-                    pred_costs.append(timeout_cost)
-                    timeout_costs.append(timeout_cost)
-                else:
-                    pred_costs.append(pred_cost.item())
+                pred_costs.append(pred_cost.item())
                 min_costs.append(min_cost.item())
-            total_pred_cost = sum(pred_costs)
-            total_min_cost = sum(min_costs)
-            ability = total_min_cost / total_pred_cost
-            writer.add_scalar('test/ability', ability, epoch)
-            print(f'Test ability: {ability * 100}%, pred time: {total_pred_cost / 1000}, min time: {total_min_cost / 1000}, {len(timeout_costs)} timeouts: {[c / 1000 for c in timeout_costs]}', flush=True)
+            if len(pred_costs) != 0:
+                total_pred_cost = sum(pred_costs)
+                total_min_cost = sum(min_costs)
+                ability = total_min_cost / total_pred_cost
+                writer.add_scalar('val/ability', ability, epoch)
+                logfile.write(f'Validation ability: {ability * 100}%\n')
+
+            if test_dataloader is not None:
+                losses = []
+                selected = []
+                pred_costs = []
+                timeout_costs = []
+                min_costs = []
+                for trees, cost_label, weights in tqdm(test_dataloader):
+                    cost = model.model(trees)
+                    pred = cost.view(-1)
+                    argmin_pred = torch.argmin(pred)
+                    selected.append(argmin_pred.item())
+                    pred_cost = cost_label[argmin_pred]
+                    min_cost = torch.min(cost_label)
+                    if pred_cost.item() == float('inf'):
+                        default = cost_label[0].item()
+                        timeout_cost = 4 * default
+                        if timeout_cost >= 240000:
+                            timeout_cost = max(default, 240000)
+                        elif timeout_cost <= 5000:
+                            timeout_cost = 5000
+                        pred_costs.append(timeout_cost)
+                        timeout_costs.append(timeout_cost)
+                    else:
+                        pred_costs.append(pred_cost.item())
+                    min_costs.append(min_cost.item())
+                with open(os.path.join(logdir, 'logs', f'{epoch}.json'), 'w') as f:
+                    json.dump(selected, f)
+                total_pred_cost = sum(pred_costs)
+                total_min_cost = sum(min_costs)
+                ability = total_min_cost / total_pred_cost
+                writer.add_scalar('test/ability', ability, epoch)
+                logfile.write(f'Test ability: {ability * 100}%, pred time: {total_pred_cost / 1000}, min time: {total_min_cost / 1000}, {len(timeout_costs)} timeouts: {[c / 1000 for c in timeout_costs]}\n')
+            logfile.flush()
 
 def main(args: argparse.Namespace):
     dataset_regex = re.compile(r'([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)')
@@ -144,12 +166,13 @@ def main(args: argparse.Namespace):
         test_dataloader = DataLoader(test_dataset, batch_sampler=test_sampler, collate_fn=model._transform_samples)
     else:
         test_dataloader = None
-    optimizer = torch.optim.Adam(model.model.parameters(), lr=1e-4)
-    train(model, optimizer, dataloader, val_dataloader, test_dataloader, args.epoch)
+    optimizer = torch.optim.Adam(model.model.parameters(), lr=args.lr)
+    train(model, optimizer, dataloader, val_dataloader, test_dataloader, args.epoch, args.logdir, args.alpha, args.gamma)
     os.makedirs('models', exist_ok=True)
     model.save(f'models/lero_on_{database}_{workload}_{method}_{args.valset.split(".")[0]}.pth')
 
 if __name__ == '__main__':
+    timestamp_str = get_current_time()
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='imdb/JOB/Bao')
     parser.add_argument('--test', type=str, default='')
@@ -158,7 +181,14 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--valset', type=str, default='val.json')
     parser.add_argument('--cuda', type=int, default=0)
+    parser.add_argument('--lr', type=float, default=1e-3)
+    parser.add_argument('--logdir', type=str, default=f'logs/{timestamp_str}')
+    parser.add_argument('--alpha', type=float, default=0.)
+    parser.add_argument('--gamma', type=float, default=0.)
     args = parser.parse_args()
+    os.makedirs(args.logdir, exist_ok=True)
+    os.makedirs(os.path.join(args.logdir, 'models'), exist_ok=True)
+    os.makedirs(os.path.join(args.logdir, 'logs'), exist_ok=True)
     seed = args.seed
     random.seed(seed)
     np.random.seed(seed)
