@@ -10,7 +10,8 @@ def main(args):
         'bao': 'Bao',
         'lero': 'Lero',
         'lero+': 'LeroExp',
-        'ours': 'LeroMamba'
+        'ours': 'LeroMamba',
+        'ours-': 'LeroMamba'
     }
     dataset_dirnames = {
         'JOB': 'imdb',
@@ -61,6 +62,38 @@ def main(args):
                 'TPCH': 0.05,
                 'TPCDS': 0.05,
             }
+        },
+        "ours-": {
+            "batch_sizes": {
+                'JOB': 512,
+                'STATS': 256,
+                'TPCH': 256,
+                'TPCDS': 256
+            },
+            "learning_rates": {
+                'JOB': 1e-5,
+                'STATS': 5e-6,
+                'TPCH': 5e-6,
+                'TPCDS': 5e-6,
+            },
+            "epochs": {
+                'JOB': 200,
+                'STATS': 80,
+                'TPCH': 80,
+                'TPCDS': 80
+            },
+            "alpha": {
+                'JOB': 0,
+                'STATS': 0,
+                'TPCH': 0,
+                'TPCDS': 0
+            },
+            "gamma": {
+                'JOB': 0,
+                'STATS': 0,
+                'TPCH': 0,
+                'TPCDS': 0,
+            }
         }
     }
     for model, workload, method, seed in itertools.product(args.models, args.workloads, args.methods, args.seeds):
@@ -97,7 +130,7 @@ if __name__ == '__main__':
     parser.add_argument('--seeds', type=lambda s: s.split(','), default=['3407'])
     parser.add_argument('--dry-run', action='store_true', default=False)
     args = parser.parse_args()
-    valid_models = {'bao', 'lero', 'lero+', 'ours'}
+    valid_models = {'bao', 'lero', 'lero+', 'ours', 'ours-'}
     valid_workloads = {'JOB', 'STATS', 'TPCH', 'TPCDS'}
     valid_methods = {'bao', 'lero', 'ours'}
     if not check_validation(args.models, valid_models):

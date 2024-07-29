@@ -61,7 +61,10 @@ def train(model, optimizer, scheduler, dataloader, val_dataloader, test_dataload
                 weights = weights / weights.sum()
                 pred = pred[:,0] - pred[:,1]
                 label = (label[:,0] > label[:,1]).float()
-                loss = tailr_loss_with_logits(pred, label, weights, gamma)
+                if gamma == 0:
+                    loss = F.binary_cross_entropy_with_logits(pred, label, weight=weights, reduction='sum')
+                else:
+                    loss = tailr_loss_with_logits(pred, label, weights, gamma)
                 losses.append(loss.item())
                 optimizer.zero_grad()
                 loss.backward()
