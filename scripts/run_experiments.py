@@ -9,7 +9,7 @@ def main(args):
     model_dirnames = {
         'bao': 'Bao',
         'lero': 'Lero',
-        'lero+': 'LeroExp',
+        'lero+': 'Lero',
         'ours': 'LeroMamba',
         'ours-': 'LeroMamba'
     }
@@ -93,6 +93,38 @@ def main(args):
                 'STATS': 0,
                 'TPCH': 0,
                 'TPCDS': 0,
+            }
+        },
+        "lero+": {
+            "batch_sizes": {
+                'JOB': 64,
+                'STATS': 64,
+                'TPCH': 64,
+                'TPCDS': 64
+            },
+            "learning_rates": {
+                'JOB': 1e-4,
+                'STATS': 1e-4,
+                'TPCH': 1e-4,
+                'TPCDS': 1e-4,
+            },
+            "epochs": {
+                'JOB': 100,
+                'STATS': 100,
+                'TPCH': 100,
+                'TPCDS': 100
+            },
+            "alpha": {
+                'JOB': 1,
+                'STATS': 1,
+                'TPCH': 0.25,
+                'TPCDS': 0.25
+            },
+            "gamma": {
+                'JOB': 0.9,
+                'STATS': 0.9,
+                'TPCH': 0.05,
+                'TPCDS': 0.05,
             }
         }
     }
