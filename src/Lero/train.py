@@ -46,7 +46,7 @@ def tailr_loss_with_logits(input: torch.Tensor, target: torch.Tensor, weight: to
         return torch.mean(target * pos + (1 - target) * neg) / (1 - gamma)
 
 def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epochs, logdir, alpha, gamma):
-    with open(os.path.join(logdir, 'output.txt'), 'a') as logfile:
+    with open(os.path.join(logdir, 'output.txt'), 'a+') as logfile:
         for epoch in range(num_epochs):
             model.model.cuda()
             model.model.train()
@@ -78,20 +78,21 @@ def train(model, optimizer, dataloader, val_dataloader, test_dataloader, num_epo
             losses = []
             pred_costs = []
             min_costs = []
-            for trees, cost_label, weights in tqdm(val_dataloader):
-                cost = model.model(trees)
-                pred = cost.view(-1)
-                argmin_pred = torch.argmin(pred)
-                pred_cost = cost_label[argmin_pred]
-                min_cost = torch.min(cost_label)
-                pred_costs.append(pred_cost.item())
-                min_costs.append(min_cost.item())
-            if len(pred_costs) != 0:
-                total_pred_cost = sum(pred_costs)
-                total_min_cost = sum(min_costs)
-                ability = total_min_cost / total_pred_cost
-                writer.add_scalar('val/ability', ability, epoch)
-                logfile.write(f'Validation ability: {ability * 100}%\n')
+            if val_dataloader is not None:
+                for trees, cost_label, weights in tqdm(val_dataloader):
+                    cost = model.model(trees)
+                    pred = cost.view(-1)
+                    argmin_pred = torch.argmin(pred)
+                    pred_cost = cost_label[argmin_pred]
+                    min_cost = torch.min(cost_label)
+                    pred_costs.append(pred_cost.item())
+                    min_costs.append(min_cost.item())
+                if len(pred_costs) != 0:
+                    total_pred_cost = sum(pred_costs)
+                    total_min_cost = sum(min_costs)
+                    ability = total_min_cost / total_pred_cost
+                    writer.add_scalar('val/ability', ability, epoch)
+                    logfile.write(f'Validation ability: {ability * 100}%\n')
 
             if test_dataloader is not None:
                 losses = []

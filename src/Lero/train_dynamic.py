@@ -30,6 +30,7 @@ def main(args):
     model_retrain_dir = f'models/lero_on_{workload}_{plan_method}_retrain/'
     os.makedirs(model_retrain_dir, exist_ok=True)
     results_path = f'results/{database}/{workload}-sample/{plan_method}/Lero-retrain.json'
+    os.makedirs(f'{args.logdir}models/', exist_ok=True)
     
     _, eval_queries = read_workload(eval_workload)
     print('load evaluation workload finished')
@@ -46,6 +47,7 @@ def main(args):
     model = Lero(db_info.table_map)
     model.init_model()
     model.load(model_dir)
+    model.model.cuda()
     print('load pretrained model finished')
     _, baseline_plans = load_latest_plans(database, eval_workload, 'pg')
     print('load baseline plans finished')
@@ -65,7 +67,7 @@ def main(args):
     with DBConn(database) as db:
         db.prewarm()
         train_dataset = copy.deepcopy(pretrain_dataset)
-        for query_idx, (name, eval_query, query_dataset) in enumerate(zip(eval_names, eval_queries), eval_dataset):
+        for query_idx, (name, eval_query, query_dataset) in enumerate(zip(eval_names, eval_queries, eval_dataset)):
             record = []
             new_plans = []
             
@@ -74,6 +76,7 @@ def main(args):
             print(f'Evaluate Query {name}, test timeout: {test_timeout}, explore timeout: {explore_timeout}')
             
             # 1. select plan
+            model.model.eval()
             query_plandataset = PlanDataset([query_dataset], model)
             query_sampler = QuerySampler([query_dataset])
             query_dataloader = DataLoader(query_plandataset, batch_sampler=query_sampler, collate_fn=model._transform_samples)
@@ -127,7 +130,7 @@ def main(args):
                 elif len(record) == 1:
                     test_execution_time_list.append(record[0])
             # update training data
-            new_plan = copy.deepcopy(query_plandataset[selected_plan_idx])
+            new_plan = copy.deepcopy(query_dataset[selected_plan_idx])
             if test_execution_time_list[-1] > explore_timeout:
                 new_plan['Timeout Time'] = explore_timeout
             else:
@@ -137,10 +140,11 @@ def main(args):
             # 5. explore new plans
             for explore_plan_idx in explore_plans_idxes:
                 explore_record = []
-                new_plan, runtime = copy.deepcopy(query_plandataset[explore_plan_idx]), 0
+                new_plan, runtime = copy.deepcopy(query_dataset[explore_plan_idx]), 0
                 if str(explore_plan_idx) not in records[query_idx]:
                     print(f'The explore result does not exist, exisiting records: {records[query_idx]}, explore plan idx: {explore_plan_idx}')
                     selected_option = eval_lero_options[query_idx][explore_plan_idx]
+                    hints = ['SET enable_lero TO off']
                     if selected_option is not None:
                         option_obj = SwingOption(selected_option[0], selected_option[1])
                         hints = option_obj.get_hints()
@@ -181,10 +185,12 @@ def main(args):
    
             # 7. retrain the model after a certain interval
             if (query_idx + 1) % retrain_interval == 0:
-                train_dataset = PlanDataset(train_dataset, model)
+                train_plandataset = PlanDataset(train_dataset, model)
                 pairwrise_sampler = PairwiseSampler(train_dataset, args.batch_size)
-                train_dataloader = DataLoader(train_dataset, batch_sampler=pairwrise_sampler, collate_fn=model._transform_samples)
+                train_dataloader = DataLoader(train_plandataset, batch_sampler=pairwrise_sampler, collate_fn=model._transform_samples)
                 optimizer = torch.optim.Adam(model.model.parameters(), lr=args.lr)
+                # initialize a new Lero model
+                model.init_model()
                 lero_train(model, optimizer, train_dataloader, None, None, args.epoch, args.logdir, 0., 0.)
                 model_retrain_epoch_dir = os.path.join(model_retrain_dir, f'epoch_{query_idx+1}/')
                 os.makedirs(model_retrain_epoch_dir, exist_ok=True)
