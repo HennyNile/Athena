@@ -60,5 +60,10 @@ def load_Bao_options(db, workload):
             options.append(option)
     return names, options
 
+def load_training_order(db, workload):
+    with open(os.path.join('datasets', db, workload, 'shuffled.json'), 'r') as f:
+        training_order = json.load(f)
+    return training_order
+
 if __name__ == '__main__':
     names, options = load_Lero_options('imdb', 'JOB-sample')
