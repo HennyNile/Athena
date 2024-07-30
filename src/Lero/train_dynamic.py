@@ -10,13 +10,11 @@ import copy
 from torch.utils.data import DataLoader
 
 sys.path.append('.')
-sys.path.append('./src/Bao/BaoForPostgreSQL/bao_server')
 
-from src.utils.dataset_utils import read_dataset, load_Bao_options, load_Lero_options, timeout_time
+from src.utils.dataset_utils import read_dataset, load_Lero_options, timeout_time
 from src.utils.record_utils import load_records, write_records
 from src.utils.workload_utils import read_workload
 from src.utils.db_utils import DBConn
-from src.Bao.generate_dataset import arm_idx_to_hints
 from src.utils.result_utils import load_latest_plans
 from lero import Lero
 from src.Lero.train import PlanDataset
@@ -28,10 +26,10 @@ def main(args):
     database, workload, plan_method = args.dataset.split('/')
     pretrain_dataset_dir = os.path.join('datasets', args.dataset)
     eval_workload, eval_dataset_dir = f'{workload}-sample', f'datasets/{database}/{workload}-sample/{plan_method}'
-    model_dir = f'models/bao_on_{workload}_{plan_method}/'
+    model_dir = f'models/lero_on_{database}_{workload}_{plan_method}.pth'
     model_retrain_dir = f'models/lero_on_{workload}_{plan_method}_retrain/'
     os.makedirs(model_retrain_dir, exist_ok=True)
-    results_path = f'results/{database}/{workload}-sample/{plan_method}/Bao-retrain.json'
+    results_path = f'results/{database}/{workload}-sample/{plan_method}/Lero-retrain.json'
     
     _, eval_queries = read_workload(eval_workload)
     print('load evaluation workload finished')
@@ -47,7 +45,7 @@ def main(args):
         db_info = db.get_db_info()
     model = Lero(db_info.table_map)
     model.init_model()
-    model.load('lero_on_{database}_{workload}_{plan_method}.pth')
+    model.load(model_dir)
     print('load pretrained model finished')
     _, baseline_plans = load_latest_plans(database, eval_workload, 'pg')
     print('load baseline plans finished')
@@ -85,7 +83,7 @@ def main(args):
                 preds.append(cost.view(-1).detach().cpu().numpy())
             assert len(preds) == 1
             pred = preds[0]
-            selected_plan_idx = np.argmin(pred)
+            selected_plan_idx = int(np.argmin(pred))
             sorted_plans_idxes = sorted(range(len(pred)), key=lambda i: pred[i])
             explore_plans_idxes = sorted_plans_idxes[1:explore_plan_num]
             results.append(selected_plan_idx)
@@ -195,11 +193,11 @@ def main(args):
     with open(results_path, 'w') as f:
         json.dump(results, f)
     
-    print(f'DB: {database}, Pretrain Workload: {workload}, Eval Workload: {eval_workload},  Plan Generation method: {plan_method}, Model: Bao, test runtime: {sum(test_execution_time_list)}')
+    print(f'DB: {database}, Pretrain Workload: {workload}, Eval Workload: {eval_workload},  Plan Generation method: {plan_method}, Model: Lero, test runtime: {sum(test_execution_time_list)}')
                 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='imdb/JOB/Bao')
+    parser.add_argument('--dataset', type=str, default='imdb/JOB/Lero')
     parser.add_argument('--seed', type=int, default=3407)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--lr', type=float, default=1e-3)

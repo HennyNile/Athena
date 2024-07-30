@@ -10,7 +10,7 @@ import random
 sys.path.append('.')
 sys.path.append('./src/Bao/BaoForPostgreSQL/bao_server')
 
-from src.utils.dataset_utils import read_dataset, load_Bao_options
+from src.utils.dataset_utils import read_dataset, load_Bao_options, timeout_time
 from src.Bao.BaoForPostgreSQL.bao_server.caro_utils import prepare_train_dataset, prepare_test_dataset
 from src.Bao.BaoForPostgreSQL.bao_server import model
 from src.utils.record_utils import load_records, write_records
@@ -63,22 +63,17 @@ def main(args):
         for query_idx, (name, eval_query, x) in enumerate(zip(eval_names, eval_queries, xs)):
             record = []
             # 0. set exploration timeout
-            explore_timeout = 4 * baseline_plans[query_idx]['Execution Time']
-            if explore_timeout >= 240000:
-                explore_timeout = max(baseline_plans[query_idx]['Execution Time'], 240000)
-            elif explore_timeout <= 5000:
-                explore_timeout = 5000
+            explore_timeout = timeout_time(baseline_plans[query_idx]['Execution Time'])
             print(f'Evaluate Query {name}, test timeout: {test_timeout}, explore timeout: {explore_timeout}')
             
             # 1. select plan
             pred = reg.predict(x)
+            selected_plan_idx = int(np.argmin(pred))
             sorted_plans_idxes = sorted(range(len(pred)), key=lambda i: pred[i])
             explore_plans_idxes = sorted_plans_idxes[1:explore_plan_num]
-            selected_plan_idx = int(np.argmin(pred))
             results.append(selected_plan_idx)
             
             # 2. check records
-            find_record = False
             if str(selected_plan_idx) in records[query_idx] and (records[query_idx] != [600000] and records[query_idx] != [-1]):
                 print('The test result exists')
                 record = records[query_idx][str(selected_plan_idx)]
@@ -121,6 +116,7 @@ def main(args):
             # 5. explore new plans
             for explore_plan_idx in explore_plans_idxes:
                 explore_record = []
+                new_plan, runtime = eval_dataset[query_idx][explore_plan_idx], 0
                 if str(explore_plan_idx) not in records[query_idx]:
                     print(f'The explore result does not exist, exisiting records: {records[query_idx]}, explore plan idx: {explore_plan_idx}')
                     selected_option = eval_bao_options[query_idx][explore_plan_idx]
@@ -131,31 +127,30 @@ def main(args):
                             explore_record.append(sample['Execution Time'])
                         # update training data
                         if len(explore_record) == 5:
-                            train_x.append(eval_dataset[query_idx][explore_plan_idx])
-                            train_y.append(sum(explore_record[2:])/3)
+                            runtime = sum(explore_record[2:])/3
                         elif len(explore_record) == 2:
-                            train_x.append(eval_dataset[query_idx][explore_plan_idx])
-                            train_y.append(explore_record[1])
-                        elif len(explore_record) == 1 and explore_record[0] != explore_timeout:
-                            train_x.append(eval_dataset[query_idx][explore_plan_idx])
-                            train_y.append(explore_record[0])
+                            runtime = explore_record[1]
+                        elif len(explore_record) == 1:
+                            runtime = explore_record[0]
                     except psycopg2.errors.QueryCanceled:
                         db.rollback()
                         explore_record = [-1]
+                        runtime = explore_timeout
                     records[query_idx][str(explore_plan_idx)] = explore_record
                     write_records(database, eval_workload, plan_method, records)
                 else:
                     print(f'The explore result exists, exisiting records: {records[query_idx]}, explore plan idx: {explore_plan_idx}')
                     explore_record = records[query_idx][str(explore_plan_idx)]
                     if len(explore_record) == 5:
-                        train_x.append(eval_dataset[query_idx][explore_plan_idx])
-                        train_y.append(sum(explore_record[2:])/3)
+                        runtime = sum(explore_record[2:])/3
                     elif len(explore_record) == 2:
-                        train_x.append(eval_dataset[query_idx][explore_plan_idx])
-                        train_y.append(explore_record[1])
+                        runtime = explore_record[1]
                     elif len(explore_record) == 1 and explore_record[0] != explore_timeout and explore_record[0] != 600000 and explore_record[0] != 1800000 and explore_record[0] != -1:
-                        train_x.append(eval_dataset[query_idx][explore_plan_idx])
-                        train_y.append(explore_record[0])
+                        runtime = explore_record[0]
+                if runtime != 0 and runtime != explore_timeout:
+                    train_x.append(new_plan)
+                    train_y.append(runtime)
+                        
                 
             # 6. retrain the model after a certain interval
             if (query_idx + 1) % retrain_interval == 0:
