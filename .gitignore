@@ -170,3 +170,5 @@ tmp*
 *.pth
 *.png
 outputs/
+
+figures/
