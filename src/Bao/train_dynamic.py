@@ -10,7 +10,7 @@ import random
 sys.path.append('.')
 sys.path.append('./src/Bao/BaoForPostgreSQL/bao_server')
 
-from src.utils.dataset_utils import read_dataset, load_Bao_options, timeout_time
+from src.utils.dataset_utils import read_dataset, load_Bao_options, timeout_time, load_training_order
 from src.Bao.BaoForPostgreSQL.bao_server.caro_utils import prepare_train_dataset, prepare_test_dataset
 from src.Bao.BaoForPostgreSQL.bao_server import model
 from src.utils.record_utils import load_records, write_records
@@ -44,6 +44,9 @@ def main(args):
     _, baseline_plans = load_latest_plans(database, eval_workload, 'pg')
     print('load baseline plans finished')
     train_x, train_y = prepare_train_dataset(pretrain_dataset)
+    training_order = load_training_order(database, eval_workload)
+    print('load training order finished')
+    
     xs = prepare_test_dataset(eval_dataset)
     test_execution_time_list = []
     test_runtimes = 1
@@ -51,27 +54,34 @@ def main(args):
     explore_timeout = 600000
     retrain_interval = 200
     explore_plan_num = 5
-    results = []
+    results = [0 for _ in range(len(eval_queries))]
     
     assert len(baseline_plans) == len(eval_queries)
     assert len(eval_dataset) == len(eval_queries)
     assert len(eval_bao_options) == len(eval_queries)
     assert len(records) == len(eval_queries)
+    assert len(training_order) == len(eval_queries)
     
     with DBConn(database) as db:
         db.prewarm()
-        for query_idx, (name, eval_query, x) in enumerate(zip(eval_names, eval_queries, xs)):
+        query_cnt = 0
+        for query_idx in training_order:
+            name = eval_names[query_idx]
+            eval_query = eval_queries[query_idx]
+            x = xs[query_idx]
+        # for query_idx, (name, eval_query, x) in enumerate(zip(eval_names, eval_queries, xs)):
             record = []
             # 0. set exploration timeout
             explore_timeout = timeout_time(baseline_plans[query_idx]['Execution Time'])
-            print(f'Evaluate Query {name}, test timeout: {test_timeout}, explore timeout: {explore_timeout}')
+            print(f'Evaluate Query {query_cnt}: {name}, test timeout: {test_timeout}, explore timeout: {explore_timeout}')
             
             # 1. select plan
             pred = reg.predict(x)
             selected_plan_idx = int(np.argmin(pred))
             sorted_plans_idxes = sorted(range(len(pred)), key=lambda i: pred[i])
             explore_plans_idxes = sorted_plans_idxes[1:explore_plan_num]
-            results.append(selected_plan_idx)
+            # results.append(selected_plan_idx)
+            results[query_idx] = selected_plan_idx
             
             # 2. check records
             if str(selected_plan_idx) in records[query_idx] and (records[query_idx] != [600000] and records[query_idx] != [-1]):
@@ -153,13 +163,14 @@ def main(args):
                         
                 
             # 6. retrain the model after a certain interval
-            if (query_idx + 1) % retrain_interval == 0:
+            if (query_cnt + 1) % retrain_interval == 0:
                 # print(sorted(train_y))
                 reg = model.BaoRegression(have_cache_data=False, verbose=True)
                 reg.fit(train_x, train_y)
                 model_retrain_epoch_dir = os.path.join(model_retrain_dir, f'epoch_{query_idx+1}/')
                 os.makedirs(model_retrain_epoch_dir, exist_ok=True)
                 reg.save(model_retrain_epoch_dir)
+            query_cnt += 1
 
     with open(results_path, 'w') as f:
         json.dump(results, f)

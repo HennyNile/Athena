@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 sys.path.append('.')
 
-from src.utils.dataset_utils import read_dataset, load_Lero_options, timeout_time
+from src.utils.dataset_utils import read_dataset, load_Lero_options, timeout_time, load_training_order
 from src.utils.record_utils import load_records, write_records
 from src.utils.workload_utils import read_workload
 from src.utils.db_utils import DBConn
@@ -51,13 +51,16 @@ def main(args):
     print('load pretrained model finished')
     _, baseline_plans = load_latest_plans(database, eval_workload, 'pg')
     print('load baseline plans finished')
+    training_order = load_training_order(database, eval_workload)
+    print('load training order finished')
+    
     test_execution_time_list = []
     test_runtimes = 1
     test_timeout = 1800000
     explore_timeout = 600000
     retrain_interval = 200
     explore_plan_num = 5
-    results = []
+    results = [0 for _ in range(len(eval_queries))]
     
     assert len(baseline_plans) == len(eval_queries)
     assert len(eval_dataset) == len(eval_queries)
@@ -66,14 +69,19 @@ def main(args):
     
     with DBConn(database) as db:
         db.prewarm()
+        query_cnt = 0
         train_dataset = copy.deepcopy(pretrain_dataset)
-        for query_idx, (name, eval_query, query_dataset) in enumerate(zip(eval_names, eval_queries, eval_dataset)):
+        for query_idx in training_order:
+            name = eval_names[query_idx]
+            eval_query = eval_queries[query_idx]
+            query_dataset = eval_dataset[query_idx]
+        # for query_idx, (name, eval_query, query_dataset) in enumerate(zip(eval_names, eval_queries, eval_dataset)):
             record = []
             new_plans = []
             
             # 0. set exploration timeout
             explore_timeout = timeout_time(baseline_plans[query_idx]['Execution Time'])
-            print(f'Evaluate Query {name}, test timeout: {test_timeout}, explore timeout: {explore_timeout}')
+            print(f'Evaluate Query {query_cnt}: {name}, test timeout: {test_timeout}, explore timeout: {explore_timeout}')
             
             # 1. select plan
             model.model.eval()
@@ -89,7 +97,8 @@ def main(args):
             selected_plan_idx = int(np.argmin(pred))
             sorted_plans_idxes = sorted(range(len(pred)), key=lambda i: pred[i])
             explore_plans_idxes = sorted_plans_idxes[1:explore_plan_num]
-            results.append(selected_plan_idx)
+            # results.append(selected_plan_idx)
+            results[query_idx] = selected_plan_idx
             
             # 2. check records
             if str(selected_plan_idx) in records[query_idx] and (records[query_idx] != [600000] and records[query_idx] != [-1]):
@@ -184,7 +193,7 @@ def main(args):
             train_dataset.append(new_plans)
    
             # 7. retrain the model after a certain interval
-            if (query_idx + 1) % retrain_interval == 0:
+            if (query_cnt + 1) % retrain_interval == 0:
                 train_plandataset = PlanDataset(train_dataset, model)
                 pairwrise_sampler = PairwiseSampler(train_dataset, args.batch_size)
                 train_dataloader = DataLoader(train_plandataset, batch_sampler=pairwrise_sampler, collate_fn=model._transform_samples)
@@ -195,6 +204,7 @@ def main(args):
                 model_retrain_epoch_dir = os.path.join(model_retrain_dir, f'epoch_{query_idx+1}/')
                 os.makedirs(model_retrain_epoch_dir, exist_ok=True)
                 model.save(f'{model_retrain_epoch_dir}/model.pth')
+            query_cnt += 1
 
     with open(results_path, 'w') as f:
         json.dump(results, f)
