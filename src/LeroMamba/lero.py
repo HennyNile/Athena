@@ -3,6 +3,7 @@ import os
 import math
 import re
 import json
+import sys
 
 import torch
 import torch.nn.functional as F
@@ -11,7 +12,8 @@ from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter()
 import numpy as np
 
-from lero_model import LeroNet
+sys.path.append('.')
+from src.LeroMamba.lero_model import LeroNet
 
 SCAN_TYPES = ["Seq Scan", "Index Scan", "Index Only Scan", 'Bitmap Heap Scan']
 JOIN_TYPES = ["Nested Loop", "Hash Join", "Merge Join"]

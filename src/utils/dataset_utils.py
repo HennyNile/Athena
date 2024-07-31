@@ -9,7 +9,7 @@ def timeout_time(default: float) -> float:
         timeout = 5000
     return timeout
 
-def read_dataset(dataset_path, true_card=False):
+def read_dataset(dataset_path, true_card=False, shuffled=False):
     with open(os.path.join(dataset_path, 'names.json'), 'r') as f:
         names = json.load(f)
     samples = []
@@ -32,6 +32,11 @@ def read_dataset(dataset_path, true_card=False):
                 samples.append(sample)
             else:
                 samples.append(sample)
+    if shuffled:
+        with open(os.path.join(dataset_path, '..', 'shuffled.json'), 'r') as f:
+            shuffled = json.load(f)
+        names = [names[i] for i in shuffled]
+        samples = [samples[i] for i in shuffled]
     return names, samples
 
 def load_Lero_options(db, workload):
