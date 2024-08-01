@@ -8,6 +8,7 @@ import os
 import random
 import re
 import sys
+from time import time
 
 import numpy as np
 import torch
@@ -47,8 +48,12 @@ def test_impl(model, test_dataloader, topk):
     model.model.cuda()
     model.model.eval()
     selected = []
+    overhead = 0
     for trees, cost_label, weights in tqdm(test_dataloader):
+        start = time()
         cost = model.model(trees.to('cuda'))
+        end = time()
+        overhead += end - start
         pred = cost.view(-1)
         if topk == 1:
             argmin_pred = torch.argmin(pred)
@@ -57,6 +62,7 @@ def test_impl(model, test_dataloader, topk):
             _, sorted_indices = pred.sort()
             argmin_pred = sorted_indices[0]
             selected.append(sorted_indices[:topk].tolist())
+    print(overhead)
     return selected
 
 def test(model_path, database, test, topk):
@@ -69,7 +75,6 @@ def test(model_path, database, test, topk):
         db_info = db.get_db_info()
     model = Lero(db_info.table_map)
     model.load(model_path)
-    print(type(test_queries))
     test_dataset = PlanDataset(test_queries, model)
     test_sampler = QuerySampler(test_queries)
     test_dataloader = DataLoader(test_dataset, batch_sampler=test_sampler, collate_fn=model._transform_samples)
