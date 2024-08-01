@@ -186,7 +186,14 @@ class Lero:
         self.min_width = model_state['min_width']
         self.max_width = model_state['max_width']
         self.init_model()
-        self.model.load_state_dict(model_state['state_dict'])
+        state_dict = model_state['state_dict']
+        if 'mamba_layers.0.mamba.learned_average.weight' not in state_dict:
+            state_dict['mamba_layers.0.mamba.learned_average.weight'] = state_dict['mamba_layers.0.mamba.learned_average']
+            state_dict['mamba_layers.1.mamba.learned_average.weight'] = state_dict['mamba_layers.1.mamba.learned_average']
+        if 'mamba_layers.0.mamba.learned_average' not in state_dict:
+            state_dict['mamba_layers.0.mamba.learned_average'] = state_dict['mamba_layers.0.mamba.learned_average.weight']
+            state_dict['mamba_layers.1.mamba.learned_average'] = state_dict['mamba_layers.1.mamba.learned_average.weight']
+        self.model.load_state_dict(state_dict)
 
     def _transform_samples(self, samples: list[LeroSample]):
         times = [sample.plan.get('Execution Time', torch.inf) for sample in samples]
