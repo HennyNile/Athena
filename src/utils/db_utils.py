@@ -153,7 +153,7 @@ class DBConn:
         cur = self.conn.cursor()
         for hint in hints:
             cur.execute(hint)
-        cur.execute(f"EXPLAIN (FORMAT JSON) {sql}")
+        cur.execute(f"EXPLAIN (SUMMARY, FORMAT JSON) {sql}")
         return cur.fetchone()[0][0]
     
     def get_result(self, sql, hints = (), timeout=None):
