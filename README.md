@@ -12,7 +12,7 @@ The modified PostgreSQL is open-sourced at [Athena_PG](https://github.com/NennyN
 
 ### Our Tree-Mamba plan comparator
 
-The code of the Tree-Mamba backbone is open-sourced at [Tree-Mamba](https://github.com/a858438680/Tree-Mamba).
+The code of the Tree-Mamba backbone is open-sourced at [TreeMamba](https://github.com/a858438680/TreeMamba).
 The model design can be found in `src/LeroMamba/lero_model.py`.
 The featurizer can be found in `src/LeroMamba/lero.py`.
 
