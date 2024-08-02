@@ -6,7 +6,7 @@ Athena is a learned optimizer enhancer.
 
 ### Our order-centric plan explorer
 
-`src/JOP/generate_dataset.py` is used to read the candidate plans explored by the Athena's plan explorer implemented in PostgreSQL and then generate the training and testing dataset.
+`src/JOP/generate_dataset.py` is used to read the candidate plans explored by Athena's plan explorer implemented on PostgreSQL and then generate the training and testing dataset.
 
 The modified PostgreSQL is open-sourced at [Athena_PG](https://github.com/HennyNile/Athena_PG).
 
